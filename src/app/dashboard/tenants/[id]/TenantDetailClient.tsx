@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, Mail, Loader2 } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ArrowLeft, Mail, Loader2, CreditCard, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react'
 import type { Tenant, User, TenancyTenant, Tenancy, Property, RentPayment, Document, Note, RightToRentCheck } from '@prisma/client'
+import { mandateStatusLabel } from '@/lib/gocardless'
 
 type TenantFull = Tenant & {
   user: User
@@ -14,7 +15,7 @@ type TenantFull = Tenant & {
   notesList: (Note & { author: User })[]
 }
 
-const TABS = ['Profile', 'Documents', 'Tenancies', 'Right to Rent', 'Notes']
+const TABS = ['Profile', 'Documents', 'Tenancies', 'Right to Rent', 'Notes', 'Direct Debit']
 const refColors: Record<string, string> = {
   PASSED: 'bg-green-100 text-green-700',
   IN_PROGRESS: 'bg-blue-100 text-blue-700',
@@ -28,11 +29,39 @@ const labelClass = 'block text-sm font-medium text-[#1a1a1a] mb-1'
 
 export default function TenantDetailClient({ tenant }: { tenant: TenantFull }) {
   const router = useRouter()
-  const [tab, setTab] = useState('Profile')
+  const searchParams = useSearchParams()
+  const [tab, setTab] = useState(() => searchParams.get('gc_success') === 'mandate_setup' ? 'Direct Debit' : 'Profile')
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [sendingWelcome, setSendingWelcome] = useState(false)
   const [welcomeSent, setWelcomeSent] = useState(false)
+  const [settingUpDD, setSettingUpDD] = useState(false)
+  const [ddError, setDdError] = useState<string | null>(null)
+  const gcSuccess = searchParams.get('gc_success')
+  const gcError = searchParams.get('gc_error')
+
+  async function setupDirectDebit() {
+    setSettingUpDD(true)
+    setDdError(null)
+    try {
+      const res = await fetch('/api/gocardless/mandate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId: tenant.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setDdError(data.error ?? 'Failed to create mandate')
+        return
+      }
+      // Redirect to GoCardless hosted page
+      window.location.href = data.redirectUrl
+    } catch {
+      setDdError('Network error — please try again')
+    } finally {
+      setSettingUpDD(false)
+    }
+  }
 
   async function sendWelcome() {
     setSendingWelcome(true)
@@ -95,6 +124,16 @@ export default function TenantDetailClient({ tenant }: { tenant: TenantFull }) {
       </div>
 
       {success && <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">Saved successfully.</div>}
+      {gcSuccess === 'mandate_setup' && (
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 flex items-center gap-2">
+          <CheckCircle size={16} /> Direct Debit mandate set up successfully. GoCardless will activate it within 1–3 business days.
+        </div>
+      )}
+      {gcError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
+          <XCircle size={16} /> GoCardless error: {gcError.replace(/_/g, ' ')}. Please try again.
+        </div>
+      )}
 
       <div className="border-b border-gray-200 flex gap-0 overflow-x-auto">
         {TABS.map((t) => (
@@ -238,6 +277,132 @@ export default function TenantDetailClient({ tenant }: { tenant: TenantFull }) {
           )}
         </div>
       )}
+
+      {tab === 'Direct Debit' && (
+        <div className="max-w-xl space-y-4">
+          {/* Status card */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#1A3D2B]/10 flex items-center justify-center flex-shrink-0">
+                <CreditCard size={18} className="text-[#1A3D2B]" />
+              </div>
+              <div>
+                <p className="font-semibold text-[#1a1a1a] text-sm">GoCardless Direct Debit</p>
+                <p className="text-xs text-gray-500">Collect rent automatically on the due date</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Mandate status</p>
+                <MandateStatusBadge status={tenant.gcMandateStatus} />
+              </div>
+              {tenant.gcCustomerId && (
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">GoCardless customer ID</p>
+                  <p className="font-mono text-xs text-gray-600 truncate">{tenant.gcCustomerId}</p>
+                </div>
+              )}
+              {tenant.gcMandateId && (
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Mandate ID</p>
+                  <p className="font-mono text-xs text-gray-600 truncate">{tenant.gcMandateId}</p>
+                </div>
+              )}
+            </div>
+
+            {ddError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
+                <AlertTriangle size={14} /> {ddError}
+              </div>
+            )}
+
+            {/* Action buttons */}
+            {!tenant.gcMandateId ? (
+              <div className="pt-2">
+                <button
+                  onClick={setupDirectDebit}
+                  disabled={settingUpDD}
+                  className="flex items-center gap-2 bg-[#1A3D2B] hover:bg-[#122B1E] text-white text-sm font-medium px-5 py-2.5 rounded-lg transition disabled:opacity-60"
+                >
+                  {settingUpDD ? <Loader2 size={15} className="animate-spin" /> : <CreditCard size={15} />}
+                  {settingUpDD ? 'Creating link…' : 'Set up Direct Debit'}
+                </button>
+                <p className="text-xs text-gray-400 mt-2">
+                  You&apos;ll be redirected to GoCardless where the tenant can authorise their bank account.
+                </p>
+              </div>
+            ) : (
+              <div className="pt-2 flex items-center gap-3">
+                {(tenant.gcMandateStatus === 'cancelled' || tenant.gcMandateStatus === 'failed' || tenant.gcMandateStatus === 'expired') && (
+                  <button
+                    onClick={setupDirectDebit}
+                    disabled={settingUpDD}
+                    className="flex items-center gap-2 bg-[#1A3D2B] hover:bg-[#122B1E] text-white text-sm font-medium px-5 py-2.5 rounded-lg transition disabled:opacity-60"
+                  >
+                    {settingUpDD ? <Loader2 size={15} className="animate-spin" /> : <CreditCard size={15} />}
+                    {settingUpDD ? 'Creating link…' : 'Set up new mandate'}
+                  </button>
+                )}
+                {tenant.gcMandateId && (
+                  <a
+                    href={`https://manage${process.env.NEXT_PUBLIC_GC_ENVIRONMENT === 'live' ? '' : '-sandbox'}.gocardless.com/mandates/${tenant.gcMandateId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-[#1A3D2B] hover:underline"
+                  >
+                    View in GoCardless →
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* How it works */}
+          <div className="bg-gray-50 rounded-xl border border-gray-100 p-5 space-y-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">How it works</p>
+            <ol className="space-y-2">
+              {[
+                'Click "Set up Direct Debit" — a GoCardless hosted page opens.',
+                'Tenant enters their bank details and authorises the mandate.',
+                'GoCardless activates the mandate (1–3 business days).',
+                'Use "Collect via GoCardless" on any rent payment row to charge the tenant automatically.',
+                'Payment status updates automatically via webhook.',
+              ].map((step, i) => (
+                <li key={i} className="flex gap-3 text-xs text-gray-600">
+                  <span className="w-4 h-4 rounded-full bg-[#1A3D2B]/10 text-[#1A3D2B] font-bold text-[10px] flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      )}
     </div>
+  )
+}
+
+// ─── Mandate status badge ─────────────────────────────────────────────────────
+
+function MandateStatusBadge({ status }: { status: string | null | undefined }) {
+  if (!status) {
+    return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 text-xs font-medium"><Clock size={11} /> Not set up</span>
+  }
+  const map: Record<string, { cls: string; icon: React.ReactNode }> = {
+    active:                    { cls: 'bg-green-100 text-green-700',  icon: <CheckCircle size={11} /> },
+    submitted:                 { cls: 'bg-blue-100 text-blue-700',    icon: <Clock size={11} /> },
+    pending_submission:        { cls: 'bg-blue-100 text-blue-700',    icon: <Clock size={11} /> },
+    pending_customer_approval: { cls: 'bg-amber-100 text-amber-700',  icon: <Clock size={11} /> },
+    failed:                    { cls: 'bg-red-100 text-red-700',      icon: <XCircle size={11} /> },
+    cancelled:                 { cls: 'bg-gray-100 text-gray-500',    icon: <XCircle size={11} /> },
+    expired:                   { cls: 'bg-gray-100 text-gray-500',    icon: <Clock size={11} /> },
+    consumed:                  { cls: 'bg-gray-100 text-gray-500',    icon: <Clock size={11} /> },
+  }
+  const { cls, icon } = map[status] ?? { cls: 'bg-gray-100 text-gray-500', icon: null }
+  return (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${cls}`}>
+      {icon}
+      {mandateStatusLabel(status)}
+    </span>
   )
 }

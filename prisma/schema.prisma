@@ -218,6 +218,12 @@ model Tenant {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
+  // GoCardless Direct Debit
+  gcCustomerId      String?
+  gcMandateId       String?
+  gcMandateStatus   String? // pending_customer_approval | pending_submission | submitted | active | failed | cancelled | expired
+  gcRedirectFlowId  String? // temporary: pending mandate setup
+
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenancies  TenancyTenant[]
   documents  Document[] @relation("TenantDocuments")
@@ -352,6 +358,11 @@ model RentPayment {
   notes       String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+
+  // GoCardless
+  gcPaymentId       String?
+  gcStatus          String? // pending_customer_approval | pending_submission | submitted | confirmed | paid_out | cancelled | failed | charged_back
+  collectionMethod  String  @default("MANUAL") // MANUAL | GOCARDLESS
 
   tenancy Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
   fees    Fee[]

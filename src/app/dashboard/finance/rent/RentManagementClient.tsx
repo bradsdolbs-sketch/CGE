@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Download, CheckCircle, Bell, Loader2 } from 'lucide-react'
+import { Download, CheckCircle, Bell, Loader2, Zap } from 'lucide-react'
 import type { RentPayment, Tenancy, Property, TenancyTenant, Tenant, User } from '@prisma/client'
+import { GC_ACTIVE_MANDATE_STATUSES, paymentStatusLabel } from '@/lib/gocardless'
 
 type PaymentRow = RentPayment & {
   tenancy: Tenancy & {
@@ -36,6 +37,8 @@ export default function RentManagementClient({ payments, initialMonth, initialYe
   const [year, setYear] = useState(initialYear)
   const [markingPaid, setMarkingPaid] = useState<string | null>(null)
   const [markingAllPaid, setMarkingAllPaid] = useState(false)
+  const [collectingGC, setCollectingGC] = useState<string | null>(null)
+  const [gcErrors, setGcErrors] = useState<Record<string, string>>({})
   const [sendingReminders, setSendingReminders] = useState(false)
   const [reminderResult, setReminderResult] = useState<string | null>(null)
 
@@ -99,6 +102,26 @@ export default function RentManagementClient({ payments, initialMonth, initialYe
       router.refresh()
     } finally {
       setMarkingAllPaid(false)
+    }
+  }
+
+  async function collectViaGC(rentPaymentId: string) {
+    setCollectingGC(rentPaymentId)
+    setGcErrors((prev) => { const n = { ...prev }; delete n[rentPaymentId]; return n })
+    try {
+      const res = await fetch('/api/gocardless/collect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rentPaymentId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setGcErrors((prev) => ({ ...prev, [rentPaymentId]: data.error ?? 'Failed' }))
+        return
+      }
+      router.refresh()
+    } finally {
+      setCollectingGC(null)
     }
   }
 
@@ -215,16 +238,41 @@ export default function RentManagementClient({ payments, initialMonth, initialYe
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[p.status] ?? ''}`}>{p.status}</span>
                     </td>
                     <td className="px-4 py-3">
-                      {p.status !== 'PAID' && (
-                        <button
-                          onClick={() => markPaid(p.id, p.amount)}
-                          disabled={markingPaid === p.id}
-                          className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium disabled:opacity-60"
-                        >
-                          <CheckCircle size={13} />
-                          {markingPaid === p.id ? '…' : 'Mark Paid'}
-                        </button>
-                      )}
+                      <div className="flex flex-col gap-1.5">
+                        {p.status !== 'PAID' && p.status !== 'VOID' && (
+                          <button
+                            onClick={() => markPaid(p.id, p.amount)}
+                            disabled={markingPaid === p.id}
+                            className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium disabled:opacity-60"
+                          >
+                            <CheckCircle size={13} />
+                            {markingPaid === p.id ? '…' : 'Mark Paid'}
+                          </button>
+                        )}
+                        {/* GoCardless collection — show when mandate active + no existing GC payment */}
+                        {p.status !== 'PAID' && p.status !== 'VOID' && !p.gcPaymentId && tenant &&
+                          GC_ACTIVE_MANDATE_STATUSES.includes(tenant.gcMandateStatus ?? '') && (
+                          <button
+                            onClick={() => collectViaGC(p.id)}
+                            disabled={collectingGC === p.id}
+                            className="flex items-center gap-1 text-xs text-[#4a6fa5] hover:text-[#1A3D2B] font-medium disabled:opacity-60"
+                            title="Create a GoCardless direct debit payment"
+                          >
+                            {collectingGC === p.id ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />}
+                            {collectingGC === p.id ? '…' : 'Collect via DD'}
+                          </button>
+                        )}
+                        {/* GC payment status */}
+                        {p.gcPaymentId && p.gcStatus && p.status !== 'PAID' && (
+                          <span className="text-xs text-gray-400 flex items-center gap-1">
+                            <Zap size={11} className="text-[#4a6fa5]" />
+                            DD: {paymentStatusLabel(p.gcStatus)}
+                          </span>
+                        )}
+                        {gcErrors[p.id] && (
+                          <span className="text-xs text-red-500">{gcErrors[p.id]}</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )

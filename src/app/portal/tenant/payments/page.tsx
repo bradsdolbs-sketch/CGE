@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { format, getYear } from 'date-fns'
 import ExportCSVButton from './ExportCSVButton'
+import { mandateStatusLabel, GC_ACTIVE_MANDATE_STATUSES } from '@/lib/gocardless'
 
 function fmt(amount: number) {
   return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(amount)
@@ -53,6 +54,8 @@ export default async function TenantPaymentsPage() {
 
   const payments = tenant?.tenancies[0]?.tenancy?.rentPayments ?? []
   const thisYear = getYear(new Date())
+  const mandateStatus = tenant?.gcMandateStatus ?? null
+  const mandateActive = GC_ACTIVE_MANDATE_STATUSES.includes(mandateStatus ?? '')
 
   const totalPaidThisYear = payments
     .filter((p) => p.status === 'PAID' && p.paidDate && getYear(new Date(p.paidDate)) === thisYear)
@@ -86,6 +89,33 @@ export default async function TenantPaymentsPage() {
         </div>
         <ExportCSVButton data={csvData} />
       </div>
+
+      {/* Direct Debit status banner */}
+      {mandateActive ? (
+        <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+          <span className="text-green-500 text-lg">✓</span>
+          <div>
+            <p className="font-semibold">Direct Debit active</p>
+            <p className="text-xs text-green-600 mt-0.5">Your rent is collected automatically each month. You&apos;ll receive a notification before each payment.</p>
+          </div>
+        </div>
+      ) : mandateStatus && mandateStatus !== 'cancelled' && mandateStatus !== 'failed' ? (
+        <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+          <span className="text-blue-400 text-lg">⏳</span>
+          <div>
+            <p className="font-semibold">Direct Debit — {mandateStatusLabel(mandateStatus)}</p>
+            <p className="text-xs text-blue-600 mt-0.5">Your mandate is being processed. It will activate within 1–3 business days.</p>
+          </div>
+        </div>
+      ) : mandateStatus === 'failed' || mandateStatus === 'cancelled' ? (
+        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+          <span className="text-red-400 text-lg">⚠</span>
+          <div>
+            <p className="font-semibold">Direct Debit {mandateStatusLabel(mandateStatus).toLowerCase()}</p>
+            <p className="text-xs text-red-600 mt-0.5">Please contact your agent to set up a new Direct Debit mandate.</p>
+          </div>
+        </div>
+      ) : null}
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

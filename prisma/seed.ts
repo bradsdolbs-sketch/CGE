@@ -378,8 +378,8 @@ async function main() {
   await Promise.all([
     prisma.notification.create({ data: { userId: bradley.id, type: 'RENT_ARREARS', title: 'Rent overdue — 19 Wood Close', message: '19 Wood Close rent is overdue. Amount: £1,750. Chaser needed.', link: '/dashboard/finance/rent', read: false } }),
     prisma.notification.create({ data: { userId: claire.id, type: 'LEASE_EXPIRY', title: 'Tenancy expiring — 19 Wood Close', message: 'Giulia Cerundolo\'s property tenancy expires in 25 days. Renewal discussion needed.', link: '/dashboard/tenancies', read: false } }),
-    prisma.notification.create({ data: { userId: bradley.id, type: 'ENQUIRY', title: 'New enquiry — Baron Court', message: 'Marcus Webb has enquired about Flat 11, Baron Court.', link: '/dashboard/applicants', read: false } }),
-    prisma.notification.create({ data: { userId: bradley.id, type: 'ENQUIRY', title: 'New enquiry — Boundary Road', message: 'Saoirse Murphy has enquired about 122B Boundary Road.', link: '/dashboard/applicants', read: false } }),
+    prisma.notification.create({ data: { userId: bradley.id, type: 'NEW_ENQUIRY', title: 'New enquiry — Baron Court', message: 'Marcus Webb has enquired about Flat 11, Baron Court.', link: '/dashboard/applicants', read: false } }),
+    prisma.notification.create({ data: { userId: bradley.id, type: 'NEW_ENQUIRY', title: 'New enquiry — Boundary Road', message: 'Saoirse Murphy has enquired about 122B Boundary Road.', link: '/dashboard/applicants', read: false } }),
   ])
 
   console.log('\n✅ Seed complete!')
