@@ -227,8 +227,44 @@ export default function TenantDetailClient({ tenant }: { tenant: TenantFull }) {
         </div>
       )}
 
-      {tab === 'Right to Rent' && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {tab === 'Right to Rent' && (() => {
+        const soonestExpiry = tenant.rightToRentChecks
+          .filter((c) => c.expiryDate)
+          .sort((a, b) => new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime())[0]
+        const daysToExpiry = soonestExpiry?.expiryDate
+          ? Math.ceil((new Date(soonestExpiry.expiryDate).getTime() - Date.now()) / 86400000)
+          : null
+
+        // WhatsApp RTR reminder link
+        const tenantWa = tenant.whatsapp || tenant.phone
+        const waRtrLink = tenantWa ? (() => {
+          const num = tenantWa.replace(/\D/g, '').replace(/^0/, '44')
+          const msg = encodeURIComponent(`Hi ${tenant.firstName}, we need to conduct a follow-up Right-to-Rent check for your tenancy. Please bring your original documents (passport/visa/biometric card) to our office at your earliest convenience, or contact us to arrange a convenient time. Thank you — Central Gate Estates`)
+          return `https://wa.me/${num}?text=${msg}`
+        })() : null
+
+        return (
+        <div className="space-y-3">
+          {/* Expiry warning */}
+          {daysToExpiry !== null && daysToExpiry <= 60 && (
+            <div className={`flex items-start gap-3 p-4 rounded-lg ${daysToExpiry <= 0 ? 'bg-red-50 border border-red-200' : daysToExpiry <= 14 ? 'bg-red-50 border border-red-200' : 'bg-amber-50 border border-amber-200'}`}>
+              <AlertTriangle size={16} className={daysToExpiry <= 14 ? 'text-red-500 mt-0.5 flex-shrink-0' : 'text-amber-500 mt-0.5 flex-shrink-0'} />
+              <div className="flex-1">
+                <p className={`text-sm font-semibold ${daysToExpiry <= 14 ? 'text-red-700' : 'text-amber-700'}`}>
+                  {daysToExpiry <= 0 ? 'RTR document EXPIRED' : `RTR document expires in ${daysToExpiry} day${daysToExpiry === 1 ? '' : 's'}`}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">A follow-up check must be completed to maintain compliance. Non-compliance: up to £20,000 civil penalty.</p>
+              </div>
+              {waRtrLink && (
+                <a href={waRtrLink} target="_blank" rel="noopener noreferrer"
+                  className="flex-shrink-0 flex items-center gap-1 text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-medium transition">
+                  WhatsApp tenant
+                </a>
+              )}
+            </div>
+          )}
+
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           {tenant.rightToRentChecks.length === 0 ? (
             <p className="text-center text-gray-400 text-sm py-8">No right to rent checks recorded</p>
           ) : (
@@ -258,8 +294,10 @@ export default function TenantDetailClient({ tenant }: { tenant: TenantFull }) {
               </tbody>
             </table>
           )}
+          </div>
         </div>
-      )}
+        )
+      })()}
 
       {tab === 'Notes' && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">

@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import StatCard from '@/components/dashboard/StatCard'
 import { addDays } from 'date-fns'
-import { Building2, PoundSterling, AlertTriangle, Wrench, RefreshCcw } from 'lucide-react'
+import { Building2, PoundSterling, AlertTriangle, Wrench, RefreshCcw, Home } from 'lucide-react'
 import Link from 'next/link'
 
 function fmt(pence: number) {
@@ -66,6 +66,7 @@ export default async function DashboardPage() {
     maintenanceByPriority,
     complianceAlerts,
     arrearsDetails,
+    voidProperties,
   ] = await Promise.all([
     prisma.property.count({ where: { status: { not: 'ARCHIVED' } } }),
     prisma.tenancy.aggregate({
@@ -107,6 +108,19 @@ export default async function DashboardPage() {
         },
       },
       orderBy: { dueDate: 'asc' },
+      take: 10,
+    }),
+    // Void properties: active (not archived) with no current active/expiring-soon tenancy
+    prisma.property.findMany({
+      where: {
+        status: { notIn: ['ARCHIVED'] },
+        tenancies: {
+          none: {
+            status: { in: ['ACTIVE', 'EXPIRING_SOON', 'HOLDING_OVER'] },
+          },
+        },
+      },
+      orderBy: { updatedAt: 'asc' },
       take: 10,
     }),
   ])
@@ -284,6 +298,45 @@ export default async function DashboardPage() {
                   </div>
                 </li>
               ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Void Properties */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-[#1a1a1a]">Void Properties</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{voidProperties.length} {voidProperties.length === 1 ? 'property' : 'properties'} with no active tenancy</p>
+            </div>
+            <Link href="/dashboard/properties" className="text-xs text-[#1A3D2B] hover:text-[#122B1E]">View all →</Link>
+          </div>
+          {voidProperties.length === 0 ? (
+            <div className="p-5 text-center text-sm text-gray-400">
+              <Home size={24} className="mx-auto mb-2 text-green-400" />
+              All properties are tenanted — great work!
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-50">
+              {voidProperties.map((p) => {
+                const daysSinceUpdate = daysAgo(new Date(p.updatedAt))
+                return (
+                  <li key={p.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-[#1a1a1a]">{p.addressLine1}</p>
+                      <p className="text-xs text-gray-500">{p.area} · {p.bedrooms} bed · {p.propertyType}</p>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${daysSinceUpdate > 30 ? 'bg-red-100 text-red-600' : daysSinceUpdate > 14 ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'}`}>
+                        {daysSinceUpdate}d void
+                      </span>
+                      <Link href={`/dashboard/properties/${p.id}`} className="text-xs text-[#1A3D2B] hover:underline">
+                        Chase →
+                      </Link>
+                    </div>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>

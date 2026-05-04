@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Download, CheckCircle, Bell, Loader2, Zap } from 'lucide-react'
+import { Download, CheckCircle, Bell, Loader2, Zap, MessageCircle } from 'lucide-react'
 import type { RentPayment, Tenancy, Property, TenancyTenant, Tenant, User } from '@prisma/client'
 import { GC_ACTIVE_MANDATE_STATUSES, paymentStatusLabel } from '@/lib/gocardless'
 
@@ -272,6 +272,24 @@ export default function RentManagementClient({ payments, initialMonth, initialYe
                         {gcErrors[p.id] && (
                           <span className="text-xs text-red-500">{gcErrors[p.id]}</span>
                         )}
+                        {/* WhatsApp arrears nudge */}
+                        {(p.status === 'LATE' || p.status === 'PARTIAL') && tenant && (tenant.whatsapp || tenant.phone) && (() => {
+                          const num = (tenant.whatsapp || tenant.phone)!.replace(/\D/g, '').replace(/^0/, '44')
+                          const dueMonth = new Date(p.dueDate).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+                          const msg = encodeURIComponent(`Hi ${tenant.firstName}, this is a friendly reminder that your rent payment of £${p.amount.toLocaleString()} for ${dueMonth} is outstanding. Please arrange payment at your earliest convenience. Thank you — CGE`)
+                          return (
+                            <a
+                              href={`https://wa.me/${num}?text=${msg}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium"
+                              title="Send WhatsApp reminder"
+                            >
+                              <MessageCircle size={13} />
+                              WhatsApp nudge
+                            </a>
+                          )
+                        })()}
                       </div>
                     </td>
                   </tr>

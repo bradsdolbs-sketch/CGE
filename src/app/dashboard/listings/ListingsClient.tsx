@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, X, Loader2, Pencil, Trash2, ExternalLink } from 'lucide-react'
+import { Plus, X, Loader2, Pencil, Trash2, ExternalLink, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 
@@ -83,6 +83,31 @@ export default function ListingsClient({
   const [editShort, setEditShort] = useState('')
   const [editSaving, setEditSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [generatingFor, setGeneratingFor] = useState<string | null>(null) // 'new' | listing.id
+  const [genError, setGenError] = useState<string | null>(null)
+
+  async function generateDescription(propertyId: string, context: 'new' | string) {
+    setGeneratingFor(context)
+    setGenError(null)
+    try {
+      const res = await fetch('/api/listings/generate-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyId }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setGenError(data.error ?? 'Generation failed'); return }
+      if (context === 'new') {
+        set('description', data.description ?? '')
+      } else {
+        setEditDesc(data.description ?? '')
+      }
+    } catch {
+      setGenError('Network error — please try again')
+    } finally {
+      setGeneratingFor(null)
+    }
+  }
 
   function set(k: keyof NewListingForm, v: string | boolean) {
     setForm((f) => ({ ...f, [k]: v }))
@@ -200,8 +225,21 @@ export default function ListingsClient({
                 <input type="text" placeholder="e.g. Bright 2-bed in Bethnal Green" value={form.shortDescription} onChange={(e) => set('shortDescription', e.target.value)} className={inputCls} />
               </div>
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Full description *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-gray-600">Full description *</label>
+                  <button
+                    type="button"
+                    onClick={() => form.propertyId && generateDescription(form.propertyId, 'new')}
+                    disabled={!form.propertyId || generatingFor === 'new'}
+                    className="flex items-center gap-1 text-xs text-[#1A3D2B] hover:text-[#122B1E] font-medium disabled:opacity-40 transition"
+                    title={!form.propertyId ? 'Select a property first' : 'Generate with AI (uses photos + TfL data)'}
+                  >
+                    {generatingFor === 'new' ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                    {generatingFor === 'new' ? 'Generating…' : 'Write with AI'}
+                  </button>
+                </div>
                 <textarea rows={4} value={form.description} onChange={(e) => set('description', e.target.value)} className={`${inputCls} resize-none`} required />
+                {genError && generatingFor === null && <p className="text-xs text-red-500 mt-1">{genError}</p>}
               </div>
             </div>
             <div className="flex flex-wrap gap-4 text-sm">
@@ -283,7 +321,18 @@ export default function ListingsClient({
                         <input type="text" value={editShort} onChange={(e) => setEditShort(e.target.value)} className={inputCls} />
                       </div>
                       <div className="col-span-2">
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-medium text-gray-600">Description</label>
+                          <button
+                            type="button"
+                            onClick={() => generateDescription(l.property.id, l.id)}
+                            disabled={generatingFor === l.id}
+                            className="flex items-center gap-1 text-xs text-[#1A3D2B] hover:text-[#122B1E] font-medium disabled:opacity-40 transition"
+                          >
+                            {generatingFor === l.id ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                            {generatingFor === l.id ? 'Generating…' : 'Write with AI'}
+                          </button>
+                        </div>
                         <textarea rows={3} value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className={`${inputCls} resize-none`} />
                       </div>
                     </div>
