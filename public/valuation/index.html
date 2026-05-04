@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rental Valuation | Central Gate Estates</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ============================================================
+       RESET & BASE
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0E1411;
+      --surface:     #141A17;
+      --bubble-bot:  #1F4D33;
+      --bubble-user: #5DD08A;
+      --accent:      #5DD08A;
+      --accent-dim:  #3da868;
+      --text:        #F0EBE0;
+      --text-muted:  #9A9A8A;
+      --border:      #2a3830;
+      --input-bg:    #1a2420;
+      --radius:      16px;
+      --radius-sm:   10px;
+      --font:        'Inter', system-ui, sans-serif;
+      --transition:  0.22s ease;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ============================================================
+       LAYOUT — outer wrapper
+    ============================================================ */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 520px;
+      margin: 0 auto;
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ============================================================
+       HEADER
+    ============================================================ */
+    #header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+
+    #wordmark {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+
+    #wordmark span {
+      color: var(--text-muted);
+      font-weight: 400;
+      letter-spacing: 0.04em;
+    }
+
+    #header-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    #header-badge::before {
+      content: '';
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* ============================================================
+       PROGRESS BAR
+    ============================================================ */
+    #progress-wrap {
+      height: 3px;
+      background: var(--border);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    #progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+      width: 0%;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 0 2px 2px 0;
+    }
+
+    /* ============================================================
+       CHAT AREA
+    ============================================================ */
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 16px 8px;
+      scroll-behavior: smooth;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    #chat::-webkit-scrollbar { width: 4px; }
+    #chat::-webkit-scrollbar-track { background: transparent; }
+    #chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ============================================================
+       MESSAGE BUBBLES
+    ============================================================ */
+    .msg-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      opacity: 0;
+      transform: translateY(8px);
+      animation: msgIn var(--transition) forwards;
+    }
+
+    .msg-row.bot  { justify-content: flex-start; }
+    .msg-row.user { justify-content: flex-end; margin-top: 6px; }
+
+    @keyframes msgIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .avatar {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: var(--bubble-bot);
+      border: 1.5px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .bubble {
+      max-width: 78%;
+      padding: 11px 15px;
+      border-radius: var(--radius);
+      font-size: 14.5px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    .msg-row.bot  .bubble {
+      background: var(--bubble-bot);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg-row.user .bubble {
+      background: var(--bubble-user);
+      color: #0E1411;
+      font-weight: 500;
+      border-bottom-right-radius: 4px;
+    }
+
+    /* ============================================================
+       TYPING INDICATOR
+    ============================================================ */
+    #typing-row {
+      display: none;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    #typing-row.visible { display: flex; }
+
+    #typing-bubble {
+      background: var(--bubble-bot);
+      padding: 11px 16px;
+      border-radius: var(--radius);
+      border-bottom-left-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: 0.4;
+      animation: blink 1.2s infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes blink {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50%       { opacity: 1;   transform: scale(1.2); }
+    }
+
+    /* ============================================================
+       QUICK REPLIES / BUTTONS
+    ============================================================ */
+    #replies {
+      padding: 10px 16px 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      flex-shrink: 0;
+      min-height: 0;
+    }
+
+    .qr-btn {
+      background: transparent;
+      border: 1.5px solid var(--accent);
+      color: var(--accent);
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-family: var(--font);
+      font-size: 13.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition), transform 0.1s;
+      white-space: nowrap;
+    }
+
+    .qr-btn:hover {
+      background: var(--accent);
+      color: #0E1411;
+    }
+
+    .qr-btn:active { transform: scale(0.97); }
+
+    .qr-btn.primary {
+      background: var(--accent);
+      color: #0E1411;
+      font-weight: 600;
+    }
+
+    .qr-btn.primary:hover { background: #4cbf7c; }
+
+    .qr-btn.secondary {
+      border-color: var(--text-muted);
+      color: var(--text-muted);
+    }
+
+    .qr-btn.secondary:hover { background: var(--text-muted); color: #0E1411; }
+
+    /* ============================================================
+       MULTI-SELECT CHECKBOXES
+    ============================================================ */
+    #multi-select-wrap {
+      padding: 10px 16px 6px;
+      flex-shrink: 0;
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .cb-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      background: var(--input-bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+      user-select: none;
+      font-size: 13px;
+    }
+
+    .cb-item:hover { border-color: var(--accent-dim); }
+
+    .cb-item.checked {
+      border-color: var(--accent);
+      background: rgba(93, 208, 138, 0.08);
+    }
+
+    .cb-box {
+      width: 16px; height: 16px;
+      border-radius: 4px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background var(--transition), border-color var(--transition);
+    }
+
+    .cb-item.checked .cb-box {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .cb-item.checked .cb-box::after {
+      content: '';
+      width: 4px; height: 7px;
+      border: 2px solid #0E1411;
+      border-top: none; border-left: none;
+      transform: rotate(42deg) translateY(-1px);
+      display: block;
+    }
+
+    /* ============================================================
+       TEXT INPUT ROW
+    ============================================================ */
+    #input-row {
+      display: none;
+      padding: 10px 16px 6px;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    #input-row.visible { display: flex; }
+
+    #text-input {
+      flex: 1;
+      background: var(--input-bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14.5px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+
+    #text-input::placeholder { color: var(--text-muted); }
+    #text-input:focus { border-color: var(--accent); }
+
+    #send-btn {
+      background: var(--accent);
+      border: none;
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background var(--transition), transform 0.1s;
+    }
+
+    #send-btn:hover { background: #4cbf7c; }
+    #send-btn:active { transform: scale(0.93); }
+
+    #send-btn svg { color: #0E1411; }
+
+    /* ============================================================
+       CONTACT FORM (inline in chat)
+    ============================================================ */
+    .contact-form-bubble {
+      background: var(--bubble-bot);
+      border-radius: var(--radius);
+      border-bottom-left-radius: 4px;
+      padding: 16px;
+      max-width: 90%;
+    }
+
+    .form-field {
+      margin-bottom: 12px;
+    }
+
+    .form-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 5px;
+    }
+
+    .form-field input {
+      width: 100%;
+      background: rgba(14, 20, 17, 0.6);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+
+    .form-field input::placeholder { color: var(--text-muted); }
+    .form-field input:focus { border-color: var(--accent); }
+
+    .form-field input.error { border-color: #e05a5a; }
+
+    .form-submit-btn {
+      width: 100%;
+      background: var(--accent);
+      color: #0E1411;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font);
+      font-size: 14.5px;
+      font-weight: 700;
+      padding: 11px;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: background var(--transition), transform 0.1s;
+      letter-spacing: 0.02em;
+    }
+
+    .form-submit-btn:hover { background: #4cbf7c; }
+    .form-submit-btn:active { transform: scale(0.98); }
+
+    .form-submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .honeypot-field { display: none !important; }
+
+    /* ============================================================
+       ESTIMATE DISPLAY BUBBLE
+    ============================================================ */
+    .estimate-card {
+      background: rgba(93, 208, 138, 0.07);
+      border: 1.5px solid rgba(93, 208, 138, 0.3);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      margin: 8px 0 4px;
+      text-align: center;
+    }
+
+    .estimate-label {
+      font-size: 11.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .estimate-range {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.01em;
+      margin-bottom: 4px;
+    }
+
+    .estimate-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ============================================================
+       FOOTER
+    ============================================================ */
+    #footer {
+      padding: 10px 16px;
+      text-align: center;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      background: var(--surface);
+    }
+
+    /* ============================================================
+       UTILITY
+    ============================================================ */
+    .hidden { display: none !important; }
+
+    .spacer { height: 12px; flex-shrink: 0; }
+
+    /* ============================================================
+       RESPONSIVE
+    ============================================================ */
+    @media (max-width: 520px) {
+      #app { max-width: 100%; border-radius: 0; height: 100dvh; }
+      .bubble { max-width: 88%; }
+    }
+  </style>
+</head>
+
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <header id="header">
+    <div id="wordmark">CGE <span>| Central Gate Estates</span></div>
+    <div id="header-badge">Online now</div>
+  </header>
+
+  <!-- PROGRESS BAR -->
+  <div id="progress-wrap">
+    <div id="progress-bar"></div>
+  </div>
+
+  <!-- CHAT MESSAGES -->
+  <div id="chat" role="log" aria-live="polite" aria-label="Chat messages"></div>
+
+  <!-- TYPING INDICATOR (appended inside chat by JS, shown/hidden) -->
+
+  <!-- MULTI-SELECT (features step) -->
+  <div id="multi-select-wrap" class="hidden">
+    <div class="checkbox-grid" id="features-grid"></div>
+    <div style="padding:0 0 2px;">
+      <button class="qr-btn primary" id="features-continue-btn">Continue</button>
+    </div>
+  </div>
+
+  <!-- QUICK REPLIES -->
+  <div id="replies"></div>
+
+  <!-- FREE TEXT INPUT -->
+  <div id="input-row">
+    <input type="text" id="text-input" autocomplete="off" spellcheck="false" />
+    <button id="send-btn" aria-label="Send">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+    </button>
+  </div>
+
+  <!-- BOTTOM SPACER -->
+  <div class="spacer"></div>
+
+  <!-- FOOTER -->
+  <footer id="footer">
+    🔒 Your data is protected. <a href="/privacy">Read our privacy policy.</a>
+  </footer>
+
+</div>
+
+<script>
+/* ============================================================
+   CENTRAL GATE ESTATES — RENTAL VALUATION CHATBOT
+   Version 1.0 — Self-contained, no external JS dependencies
+============================================================ */
+
+// ── CONFIG ──────────────────────────────────────────────────
+
+const STRIPE_PAYMENT_LINK = 'STRIPE_PAYMENT_LINK'; // TODO: Replace with real Stripe URL
+
+const DISTRICT_RENTS = {
+  // Zone 1 premium
+  'EC1': 2400, 'EC2': 2400, 'EC3': 2300, 'EC4': 2300,
+  'WC1': 2400, 'WC2': 2500,
+  'W1': 2800, 'SW1': 3200, 'SE1': 2200, 'N1': 2000,
+  'E1': 1950, 'E2': 1950,
+  // Zone 2
+  'E8': 1900, 'E9': 1800, 'E3': 1750, 'E5': 1750,
+  'N4': 1800, 'N5': 1850, 'N16': 1850,
+  'NW1': 2200, 'NW3': 2300, 'NW5': 1900, 'NW6': 1900,
+  'W2': 2400, 'W9': 2000, 'W10': 1900, 'W11': 2500,
+  'SW3': 2800, 'SW6': 2100, 'SW7': 2800, 'SW10': 2400,
+  'SE5': 1700, 'SE15': 1650, 'SE17': 1700,
+  // Zone 3
+  'N7': 1750, 'N8': 1700, 'N10': 1700, 'N15': 1600,
+  'NW2': 1750, 'NW4': 1650, 'NW8': 2100, 'NW10': 1650,
+  'E10': 1600, 'E11': 1600, 'E14': 1900, 'E15': 1600, 'E17': 1550,
+  'SE4': 1650, 'SE8': 1700, 'SE13': 1600, 'SE14': 1650, 'SE22': 1750,
+  'SW2': 1700, 'SW4': 1900, 'SW8': 1800, 'SW9': 1800, 'SW12': 1800, 'SW16': 1600,
+  'W3': 1700, 'W4': 1800, 'W5': 1700, 'W6': 1900, 'W7': 1600, 'W12': 1850, 'W13': 1700,
+};
+
+const CATCHMENT_DISTRICTS = new Set([
+  'EC1','EC2','EC3','EC4','WC1','WC2',
+  'W1','W2','W9','W10','W11',
+  'SW1','SW3','SW6','SW7','SW10',
+  'SE1','SE5','SE15','SE17',
+  'N1','N4','N5','N7','N16',
+  'E1','E2','E8','E9','E14',
+  'NW1','NW3','NW5','NW6'
+]);
+
+const BEDROOM_MULTIPLIERS = {
+  'Studio': 0.72,
+  '1 bed':  1.0,
+  '2 beds': 1.42,
+  '3 beds': 1.85,
+  '4+ beds': 2.40,
+};
+
+const CONDITION_MULTIPLIERS = {
+  'Excellent / show home': 1.12,
+  'Good / well maintained': 1.0,
+  'Average / needs cosmetic work': 0.93,
+  'Needs renovation': 0.85,
+};
+
+const FURNISHING_ADJUSTMENTS = {
+  'Furnished': 150,
+  'Part-furnished': 75,
+  'Unfurnished': 0,
+};
+
+const FEATURE_ADJUSTMENTS = {
+  'Parking/garage': 80,
+  'Garden/terrace': 100,
+  'Balcony': 60,
+  'Gym/concierge': 120,
+  'New build/modern': 100,
+  'Period features': 50,
+  'City/river view': 150,
+  'EPC A or B': 60,
+};
+
+// Total steps used for progress bar calculation (steps 1–12)
+const TOTAL_STEPS = 12;
+
+// ── STATE ───────────────────────────────────────────────────
+
+const state = {
+  step: 0,
+  serviceInterest: null,
+  postcode: null,
+  postcodeDistrict: null,
+  inCatchment: null,
+  bedrooms: null,
+  propertyType: null,
+  condition: null,
+  furnishing: null,
+  sqft: null,
+  features: [],
+  timing: null,
+  estimatedLow: null,
+  estimatedHigh: null,
+  contactName: null,
+  contactEmail: null,
+  contactPhone: null,
+};
+
+// ── DOM REFS ────────────────────────────────────────────────
+
+const chatEl        = document.getElementById('chat');
+const repliesEl     = document.getElementById('replies');
+const inputRow      = document.getElementById('input-row');
+const textInput     = document.getElementById('text-input');
+const sendBtn       = document.getElementById('send-btn');
+const progressBar   = document.getElementById('progress-bar');
+const multiWrap     = document.getElementById('multi-select-wrap');
+const featuresGrid  = document.getElementById('features-grid');
+const featuresCont  = document.getElementById('features-continue-btn');
+
+// Create typing indicator (lives inside chat)
+const typingRow = document.createElement('div');
+typingRow.id = 'typing-row';
+typingRow.innerHTML = `
+  <div class="avatar">C</div>
+  <div id="typing-bubble">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>`;
+chatEl.appendChild(typingRow);
+
+// ── HELPERS ─────────────────────────────────────────────────
+
+/** Extract outward district from a UK postcode string. E.g. "SW1A 1AA" → "SW1" */
+function extractDistrict(raw) {
+  const clean = raw.trim().toUpperCase().replace(/\s+/g, '');
+  // UK postcode outward: 2–4 chars before the inward (3 chars)
+  // Outward = everything except last 3 chars
+  if (clean.length < 5) return null;
+  const outward = clean.slice(0, clean.length - 3); // e.g. "SW1A"
+  // District is letters + initial digit(s), strip trailing sector letter
+  // Match district pattern: letter(s) + digit(s) only
+  const m = outward.match(/^([A-Z]{1,2}\d{1,2})/);
+  return m ? m[1] : null;
+}
+
+/** Format number as £X,XXX */
+function formatGBP(n) {
+  return '£' + Math.round(n).toLocaleString('en-GB');
+}
+
+/** Calculate estimate from state */
+function calculateEstimate() {
+  const base = DISTRICT_RENTS[state.postcodeDistrict] || 1800;
+  const bedMult = BEDROOM_MULTIPLIERS[state.bedrooms] || 1.0;
+  const condMult = CONDITION_MULTIPLIERS[state.condition] || 1.0;
+  const furnAdj = FURNISHING_ADJUSTMENTS[state.furnishing] || 0;
+
+  let featAdj = 0;
+  state.features.forEach(f => { featAdj += FEATURE_ADJUSTMENTS[f] || 0; });
+
+  const mid = base * bedMult * condMult + furnAdj + featAdj;
+  const low  = Math.round(mid * 0.93 / 25) * 25;  // round to nearest 25
+  const high = Math.round(mid * 1.08 / 25) * 25;
+
+  state.estimatedLow  = low;
+  state.estimatedHigh = high;
+  return { low, high };
+}
+
+/** Update progress bar */
+function setProgress(step) {
+  const pct = Math.min(100, Math.round((step / TOTAL_STEPS) * 100));
+  progressBar.style.width = pct + '%';
+}
+
+/** Scroll chat to bottom */
+function scrollBottom() {
+  setTimeout(() => {
+    chatEl.scrollTo({ top: chatEl.scrollHeight, behavior: 'smooth' });
+  }, 50);
+}
+
+/** Hide all input methods */
+function clearInputs() {
+  repliesEl.innerHTML = '';
+  inputRow.classList.remove('visible');
+  inputRow.style.display = '';
+  textInput.value = '';
+  multiWrap.classList.add('hidden');
+}
+
+// ── MESSAGE RENDERING ────────────────────────────────────────
+
+/** Add a bot message bubble. Returns the bubble element. */
+function addBotMessage(html, delay = 0) {
+  return new Promise(resolve => {
+    // Show typing indicator
+    typingRow.classList.add('visible');
+    chatEl.appendChild(typingRow); // re-append so it stays at bottom
+    scrollBottom();
+
+    setTimeout(() => {
+      typingRow.classList.remove('visible');
+
+      const row = document.createElement('div');
+      row.className = 'msg-row bot';
+      row.innerHTML = `
+        <div class="avatar">C</div>
+        <div class="bubble">${html}</div>`;
+      // Insert before typing row so typing stays last
+      chatEl.insertBefore(row, typingRow);
+      scrollBottom();
+      resolve(row);
+    }, delay + 700); // typing delay
+  });
+}
+
+/** Add a user message bubble */
+function addUserMessage(text) {
+  const row = document.createElement('div');
+  row.className = 'msg-row user';
+  row.innerHTML = `<div class="bubble">${escHtml(text)}</div>`;
+  chatEl.insertBefore(row, typingRow);
+  scrollBottom();
+}
+
+/** Escape HTML for user content */
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Render quick-reply buttons */
+function showReplies(options) {
+  repliesEl.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'qr-btn' + (opt.cls ? ' ' + opt.cls : '');
+    btn.textContent = opt.label;
+    btn.addEventListener('click', () => opt.action(opt.label));
+    repliesEl.appendChild(btn);
+  });
+  scrollBottom();
+}
+
+/** Render a free-text input */
+function showTextInput(placeholder, onSubmit, skipLabel) {
+  textInput.placeholder = placeholder || 'Type here…';
+  inputRow.classList.add('visible');
+
+  if (skipLabel) {
+    const skipBtn = document.createElement('button');
+    skipBtn.className = 'qr-btn secondary';
+    skipBtn.textContent = skipLabel;
+    skipBtn.style.marginLeft = '0';
+    repliesEl.innerHTML = '';
+    repliesEl.appendChild(skipBtn);
+    skipBtn.addEventListener('click', () => {
+      clearInputs();
+      onSubmit(null); // null = skipped
+    });
+  }
+
+  const submit = () => {
+    const val = textInput.value.trim();
+    if (!val) return;
+    clearInputs();
+    onSubmit(val);
+  };
+
+  sendBtn.onclick = submit;
+  textInput.onkeydown = e => { if (e.key === 'Enter') submit(); };
+  setTimeout(() => textInput.focus(), 100);
+}
+
+/** Render features multi-select */
+function showMultiSelect(features, onContinue) {
+  featuresGrid.innerHTML = '';
+  const selected = new Set();
+
+  features.forEach(f => {
+    const item = document.createElement('div');
+    item.className = 'cb-item';
+    item.innerHTML = `<div class="cb-box"></div><span>${f}</span>`;
+    item.addEventListener('click', () => {
+      if (selected.has(f)) { selected.delete(f); item.classList.remove('checked'); }
+      else                  { selected.add(f);    item.classList.add('checked'); }
+    });
+    featuresGrid.appendChild(item);
+  });
+
+  multiWrap.classList.remove('hidden');
+
+  featuresCont.onclick = () => {
+    multiWrap.classList.add('hidden');
+    onContinue([...selected]);
+  };
+
+  scrollBottom();
+}
+
+// ── CONVERSATION FLOW ────────────────────────────────────────
+
+/** Advance to the next conversation step */
+async function advance(stepNum) {
+  state.step = stepNum;
+  setProgress(stepNum);
+
+  // ── STEP 1: Welcome ─────────────────────────────────────
+  if (stepNum === 1) {
+    await addBotMessage(
+      `Hi! I'm the CGE valuation assistant. I'll give you an indicative rental estimate for your London property in just a few minutes.<br><br>What type of service are you interested in?`,
+      0
+    );
+    showReplies([
+      { label: 'Full management',   action: onServiceSelect },
+      { label: 'Tenant find only',  action: onServiceSelect },
+      { label: 'Rent collection',   action: onServiceSelect },
+      { label: 'Not sure yet',      action: onServiceSelect },
+    ]);
+  }
+
+  // ── STEP 2: Postcode ─────────────────────────────────────
+  else if (stepNum === 2) {
+    await addBotMessage(`Great! What's the postcode of your property?`);
+    showTextInput('e.g. SW1A 2AA', onPostcodeSubmit);
+  }
+
+  // ── STEP 3: Catchment check (handled after postcode) ────
+  // (see onPostcodeSubmit)
+
+  // ── STEP 4: Bedrooms ─────────────────────────────────────
+  else if (stepNum === 4) {
+    await addBotMessage(`Perfect, that's in our core area. Now, how many bedrooms does the property have?`);
+    showReplies([
+      { label: 'Studio',   action: onBedroomSelect },
+      { label: '1 bed',    action: onBedroomSelect },
+      { label: '2 beds',   action: onBedroomSelect },
+      { label: '3 beds',   action: onBedroomSelect },
+      { label: '4+ beds',  action: onBedroomSelect },
+    ]);
+  }
+
+  // ── STEP 5: Property type ────────────────────────────────
+  else if (stepNum === 5) {
+    await addBotMessage(`And what type of property is it?`);
+    showReplies([
+      { label: 'Flat/apartment',   action: onPropertyTypeSelect },
+      { label: 'Terraced house',   action: onPropertyTypeSelect },
+      { label: 'Semi-detached',    action: onPropertyTypeSelect },
+      { label: 'Detached',         action: onPropertyTypeSelect },
+      { label: 'Studio flat',      action: onPropertyTypeSelect },
+    ]);
+  }
+
+  // ── STEP 6: Condition ────────────────────────────────────
+  else if (stepNum === 6) {
+    await addBotMessage(`How would you describe the condition of the property?`);
+    showReplies([
+      { label: 'Excellent / show home',          action: onConditionSelect },
+      { label: 'Good / well maintained',         action: onConditionSelect },
+      { label: 'Average / needs cosmetic work',  action: onConditionSelect },
+      { label: 'Needs renovation',               action: onConditionSelect },
+    ]);
+  }
+
+  // ── STEP 7: Furnishing ───────────────────────────────────
+  else if (stepNum === 7) {
+    await addBotMessage(`Will you let the property furnished or unfurnished?`);
+    showReplies([
+      { label: 'Furnished',      action: onFurnishingSelect },
+      { label: 'Part-furnished', action: onFurnishingSelect },
+      { label: 'Unfurnished',    action: onFurnishingSelect },
+    ]);
+  }
+
+  // ── STEP 8: Floor area (optional) ───────────────────────
+  else if (stepNum === 8) {
+    await addBotMessage(`Do you know the approximate floor area? <em style="color:var(--text-muted);font-size:13px">(Optional — skip if unsure)</em>`);
+    showTextInput('Floor area in sq ft, e.g. 650', onSqftSubmit, 'Skip');
+  }
+
+  // ── STEP 9: Features ────────────────────────────────────
+  else if (stepNum === 9) {
+    await addBotMessage(`Does the property have any of these? <em style="color:var(--text-muted);font-size:13px">(Select all that apply)</em>`);
+    showMultiSelect(Object.keys(FEATURE_ADJUSTMENTS), onFeaturesSubmit);
+  }
+
+  // ── STEP 10: Timing ──────────────────────────────────────
+  else if (stepNum === 10) {
+    await addBotMessage(`When are you looking to let the property?`);
+    showReplies([
+      { label: 'Immediately',       action: onTimingSelect },
+      { label: 'Within 1 month',    action: onTimingSelect },
+      { label: 'Within 3 months',   action: onTimingSelect },
+      { label: 'Within 6 months',   action: onTimingSelect },
+      { label: 'Just exploring',    action: onTimingSelect },
+    ]);
+  }
+
+  // ── STEP 11: Show estimate ───────────────────────────────
+  else if (stepNum === 11) {
+    const { low, high } = calculateEstimate();
+    const district = state.postcodeDistrict || state.postcode;
+
+    const estimateHtml = `
+      Based on the details you've provided, we estimate your property could achieve:
+      <div class="estimate-card">
+        <div class="estimate-label">Indicative monthly rent</div>
+        <div class="estimate-range">${formatGBP(low)} – ${formatGBP(high)}<span style="font-size:14px;font-weight:500;color:var(--text-muted)"> /mo</span></div>
+        <div class="estimate-note">Indicative range based on current market data for the <strong>${district}</strong> area.</div>
+      </div>`;
+
+    await addBotMessage(estimateHtml);
+    advance(12);
+  }
+
+  // ── STEP 12: Contact capture ─────────────────────────────
+  else if (stepNum === 12) {
+    await addBotMessage(
+      `To receive your full valuation report and speak with one of our team, please share your contact details below.`
+    );
+    showContactForm();
+  }
+
+  // ── STEP 13: Thank you ───────────────────────────────────
+  else if (stepNum === 13) {
+    const firstName = (state.contactName || '').split(' ')[0];
+    await addBotMessage(
+      `Thank you, <strong>${escHtml(firstName)}</strong>! 🎉 We'll be in touch within 24 hours with your personalised valuation report. In the meantime, feel free to explore our landlord services.`
+    );
+    showReplies([
+      { label: 'Our landlord services →', cls: 'primary', action: () => { window.location.href = '/landlords'; } }
+    ]);
+  }
+}
+
+// ── STEP HANDLERS ───────────────────────────────────────────
+
+function onServiceSelect(label) {
+  clearInputs();
+  addUserMessage(label);
+  state.serviceInterest = label.toUpperCase().replace(/\s+/g, '_');
+  advance(2);
+}
+
+async function onPostcodeSubmit(raw) {
+  if (!raw) return;
+  addUserMessage(raw);
+  state.postcode = raw.trim().toUpperCase();
+
+  const district = extractDistrict(state.postcode);
+  state.postcodeDistrict = district;
+
+  if (!district) {
+    // Couldn't parse postcode
+    await addBotMessage(`Hmm, I couldn't recognise that postcode format. Please try again — for example: <em>SW1A 2AA</em> or <em>E8 4RU</em>.`);
+    showTextInput('e.g. SW1A 2AA', onPostcodeSubmit);
+    return;
+  }
+
+  const inCatchment = CATCHMENT_DISTRICTS.has(district);
+  state.inCatchment = inCatchment;
+
+  setProgress(3);
+
+  if (inCatchment) {
+    advance(4);
+  } else {
+    // Out of catchment
+    await addBotMessage(
+      `That postcode is outside our core London area (Zones 1–3). We can still provide a detailed written valuation report for a one-off fee of <strong>£10</strong>.<br><br>Would you like to continue?`
+    );
+    showReplies([
+      {
+        label: 'Yes, pay £10 for my report',
+        cls: 'primary',
+        action: () => {
+          clearInputs();
+          addUserMessage('Yes, pay £10 for my report');
+          addBotMessage(`Great! Please complete your payment using the secure link below, then we'll be in touch with your report.`)
+            .then(() => {
+              showReplies([
+                {
+                  label: 'Proceed to payment →',
+                  cls: 'primary',
+                  action: () => { window.open(STRIPE_PAYMENT_LINK, '_blank'); }
+                }
+              ]);
+            });
+        }
+      },
+      {
+        label: 'No thanks',
+        cls: 'secondary',
+        action: async () => {
+          clearInputs();
+          addUserMessage('No thanks');
+          await addBotMessage(`No problem! Feel free to come back if anything changes. We hope to help you in the future. 👋`);
+        }
+      },
+    ]);
+  }
+}
+
+function onBedroomSelect(label) {
+  clearInputs();
+  addUserMessage(label);
+  state.bedrooms = label;
+  advance(5);
+}
+
+function onPropertyTypeSelect(label) {
+  clearInputs();
+  addUserMessage(label);
+  state.propertyType = label;
+  advance(6);
+}
+
+function onConditionSelect(label) {
+  clearInputs();
+  addUserMessage(label);
+  state.condition = label;
+  advance(7);
+}
+
+function onFurnishingSelect(label) {
+  clearInputs();
+  addUserMessage(label);
+  state.furnishing = label;
+  advance(8);
+}
+
+function onSqftSubmit(val) {
+  // val is null if skipped
+  if (val !== null) addUserMessage(val);
+  else              addUserMessage('Skipped');
+  state.sqft = val ? parseInt(val, 10) || null : null;
+  advance(9);
+}
+
+function onFeaturesSubmit(selected) {
+  clearInputs();
+  state.features = selected;
+  const display = selected.length > 0 ? selected.join(', ') : 'None selected';
+  addUserMessage(display);
+  advance(10);
+}
+
+function onTimingSelect(label) {
+  clearInputs();
+  addUserMessage(label);
+  // Normalise to API value
+  const timingMap = {
+    'Immediately':      'IMMEDIATELY',
+    'Within 1 month':   '1_MONTH',
+    'Within 3 months':  '3_MONTHS',
+    'Within 6 months':  '6_MONTHS',
+    'Just exploring':   'EXPLORING',
+  };
+  state.timing = timingMap[label] || label;
+  advance(11);
+}
+
+// ── CONTACT FORM ─────────────────────────────────────────────
+
+function showContactForm() {
+  const row = document.createElement('div');
+  row.className = 'msg-row bot';
+  row.style.animationDelay = '0.1s';
+
+  const formHtml = `
+    <div class="contact-form-bubble">
+      <form id="contact-form" novalidate>
+        <!-- Honeypot -->
+        <div class="honeypot-field">
+          <input type="text" name="website" id="hp-website" tabindex="-1" autocomplete="off" />
+        </div>
+        <div class="form-field">
+          <label for="cf-name">Full name <span style="color:#e05a5a">*</span></label>
+          <input type="text" id="cf-name" placeholder="Jane Smith" autocomplete="name" />
+        </div>
+        <div class="form-field">
+          <label for="cf-email">Email address <span style="color:#e05a5a">*</span></label>
+          <input type="email" id="cf-email" placeholder="jane@example.com" autocomplete="email" />
+        </div>
+        <div class="form-field">
+          <label for="cf-phone">Phone <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+          <input type="tel" id="cf-phone" placeholder="+44 7700 900000" autocomplete="tel" />
+        </div>
+        <button type="submit" class="form-submit-btn" id="cf-submit">Get my full report</button>
+      </form>
+    </div>`;
+
+  row.innerHTML = `<div class="avatar">C</div>${formHtml}`;
+  chatEl.insertBefore(row, typingRow);
+  scrollBottom();
+
+  const form     = document.getElementById('contact-form');
+  const nameEl   = document.getElementById('cf-name');
+  const emailEl  = document.getElementById('cf-email');
+  const phoneEl  = document.getElementById('cf-phone');
+  const submitEl = document.getElementById('cf-submit');
+  const hpEl     = document.getElementById('hp-website');
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+
+    // Validate
+    let valid = true;
+    nameEl.classList.remove('error');
+    emailEl.classList.remove('error');
+
+    const name  = nameEl.value.trim();
+    const email = emailEl.value.trim();
+    const phone = phoneEl.value.trim();
+
+    if (!name)  { nameEl.classList.add('error');  nameEl.focus(); valid = false; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      emailEl.classList.add('error');
+      if (valid) emailEl.focus();
+      valid = false;
+    }
+
+    if (!valid) return;
+
+    state.contactName  = name;
+    state.contactEmail = email;
+    state.contactPhone = phone || null;
+
+    // Disable form during submission
+    submitEl.disabled = true;
+    submitEl.textContent = 'Sending…';
+
+    // Fire-and-forget API call
+    submitLead(hpEl.value);
+
+    // Remove form row and continue
+    row.remove();
+    addUserMessage(`${name} — ${email}${phone ? ' — ' + phone : ''}`);
+    advance(13);
+  });
+}
+
+// ── API SUBMISSION ───────────────────────────────────────────
+
+async function submitLead(honeypot) {
+  const payload = {
+    name:             state.contactName,
+    email:            state.contactEmail,
+    phone:            state.contactPhone,
+    postcode:         state.postcode,
+    inCatchment:      state.inCatchment,
+    bedrooms:         state.bedrooms,
+    propertyType:     state.propertyType,
+    condition:        state.condition,
+    furnishing:       state.furnishing,
+    sqft:             state.sqft,
+    features:         state.features,
+    estimatedRentLow: state.estimatedLow,
+    estimatedRentHigh:state.estimatedHigh,
+    serviceInterest:  state.serviceInterest,
+    timing:           state.timing,
+    website:          honeypot || '', // honeypot — must always be empty for real submissions
+  };
+
+  try {
+    const resp = await fetch('/api/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) {
+      console.warn('[CGE] Lead submission responded with', resp.status);
+    }
+  } catch (err) {
+    // Network error — fail silently, user experience is unaffected
+    console.warn('[CGE] Lead submission failed (network):', err.message);
+  }
+}
+
+// ── BOOT ─────────────────────────────────────────────────────
+
+advance(1);
+
+</script>
+</body>
+</html>

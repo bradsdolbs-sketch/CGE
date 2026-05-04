@@ -861,3 +861,71 @@ model TenantRefDocument {
 
   @@map("tenant_ref_documents")
 }
+
+// ─── Property Leads (rental valuation bot) ───────────────────────────────────
+
+model PropertyLead {
+  id              String                   @id @default(cuid())
+  // Contact
+  name            String
+  email           String
+  phone           String?
+  // Property details
+  postcode        String
+  inCatchment     Boolean                  @default(true)
+  bedrooms        Int?
+  propertyType    String?                  // flat | house | studio | other
+  condition       String?                  // excellent | good | fair | poor
+  furnishing      String?                  // furnished | unfurnished | part-furnished
+  sqft            Int?
+  features        String?                  // JSON array of feature strings
+  epcRating       String?
+  // Valuation
+  estimatedRentLow   Int?                  // £/mo
+  estimatedRentHigh  Int?                  // £/mo
+  // Qualification
+  serviceInterest    PropertyLeadServiceInterest @default(FULL_MANAGEMENT)
+  timing             String?               // immediately | 1_month | 3_months | 6_months | just_exploring
+  // Pipeline
+  track           PropertyLeadTrack        @default(NEW)
+  status          PropertyLeadStatus       @default(OPEN)
+  // Paid valuation (outside catchment)
+  paidValuation   Boolean                  @default(false)
+  stripeSessionId String?
+  // Internal
+  notes           String?                  @db.Text
+  agentNotes      String?                  @db.Text
+  source          String?                  @default("valuation_bot")
+  // Honeypot / spam guard
+  honeypot        String?
+  ipAddress       String?
+  // Timestamps
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  @@map("property_leads")
+}
+
+enum PropertyLeadTrack {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL_SENT
+  WON
+  LOST
+  NURTURE
+}
+
+enum PropertyLeadStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum PropertyLeadServiceInterest {
+  FULL_MANAGEMENT
+  TENANT_FIND
+  RENT_COLLECTION
+  NOT_SURE
+}

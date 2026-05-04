@@ -9,7 +9,7 @@ import {
   Users, UserCog, UserSearch, FileText, RotateCcw,
   Banknote, Receipt, DollarSign,
   Wrench, ClipboardList, HardHat,
-  Mail, Bell, Menu, X, ChevronDown, LogOut, Settings, ClipboardCheck,
+  Mail, Bell, Menu, X, ChevronDown, LogOut, Settings, ClipboardCheck, Sparkles,
 } from 'lucide-react'
 
 // ── Page title context ────────────────────────────────────────────────────────
@@ -37,6 +37,7 @@ const navSections = [
       { label: 'Tenants', href: '/dashboard/tenants', icon: Users },
       { label: 'Landlords', href: '/dashboard/landlords', icon: UserCog },
       { label: 'Applicants', href: '/dashboard/applicants', icon: UserSearch },
+      { label: 'Property Leads', href: '/dashboard/leads', icon: Sparkles },
     ],
   },
   {

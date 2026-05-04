@@ -204,7 +204,7 @@ export default function LandlordsPage() {
             East London letting, done properly. Clear fees, honest advice, and a team that actually knows E1, E2 and EC1 inside out.
           </p>
           <a
-            href="#valuation"
+            href="/landlords/valuation"
             className="btn-primary"
           >
             Get a free valuation
@@ -269,7 +269,7 @@ export default function LandlordsPage() {
 
                 {/* CTA */}
                 <a
-                  href="#valuation"
+                  href="/landlords/valuation"
                   style={{
                     display: 'block',
                     textAlign: 'center',
