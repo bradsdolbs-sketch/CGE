@@ -1,0 +1,25 @@
+# Alternative to Supabase for local development only.
+# To use: set DATABASE_URL=postgresql://postgres:postgres@localhost:5432/cge in .env.local
+# Then run: docker compose up -d && npm run db:generate && npm run db:seed
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cge
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
