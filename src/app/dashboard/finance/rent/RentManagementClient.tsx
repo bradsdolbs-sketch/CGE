@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Download, CheckCircle, Bell, Loader2, Zap, MessageCircle } from 'lucide-react'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import type { RentPayment, Tenancy, Property, TenancyTenant, Tenant, User } from '@prisma/client'
 import { GC_ACTIVE_MANDATE_STATUSES, paymentStatusLabel } from '@/lib/gocardless-helpers'
 
@@ -41,6 +42,7 @@ export default function RentManagementClient({ payments, initialMonth, initialYe
   const [gcErrors, setGcErrors] = useState<Record<string, string>>({})
   const [sendingReminders, setSendingReminders] = useState(false)
   const [reminderResult, setReminderResult] = useState<string | null>(null)
+  const [confirmMarkAll, setConfirmMarkAll] = useState(false)
 
   async function sendRentReminders() {
     setSendingReminders(true)
@@ -84,9 +86,7 @@ export default function RentManagementClient({ payments, initialMonth, initialYe
   }
 
   async function markAllPaid() {
-    const unpaid = filtered.filter((p) => p.status !== 'PAID' && p.status !== 'VOID')
-    if (!unpaid.length) return
-    if (!confirm(`Mark all ${unpaid.length} unpaid payment${unpaid.length !== 1 ? 's' : ''} as paid in full?`)) return
+    setConfirmMarkAll(false)
     setMarkingAllPaid(true)
     try {
       const today = new Date().toISOString()
@@ -161,7 +161,7 @@ export default function RentManagementClient({ payments, initialMonth, initialYe
         <div className="flex items-center gap-2 ml-auto flex-wrap">
           {filtered.some((p) => p.status !== 'PAID' && p.status !== 'VOID') && (
             <button
-              onClick={markAllPaid}
+              onClick={() => setConfirmMarkAll(true)}
               disabled={markingAllPaid}
               className="flex items-center gap-2 bg-[#1A3D2B] hover:bg-[#122B1E] text-white text-sm font-medium px-4 py-2 rounded-lg transition disabled:opacity-50"
             >
@@ -309,6 +309,16 @@ export default function RentManagementClient({ payments, initialMonth, initialYe
           )}
         </table>
       </div>
+
+      <ConfirmDialog
+        open={confirmMarkAll}
+        title="Mark all payments as paid"
+        message={`This will mark all ${filtered.filter(p => p.status !== 'PAID' && p.status !== 'VOID').length} unpaid payment(s) as paid in full for this month.`}
+        confirmLabel="Mark All Paid"
+        loading={markingAllPaid}
+        onConfirm={markAllPaid}
+        onCancel={() => setConfirmMarkAll(false)}
+      />
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Search, X, ChevronDown, MapPin, Mail, Phone, Bed, Home, Loader2, Trash2, ExternalLink, Sparkles } from 'lucide-react'
 import type { PropertyLead } from '@prisma/client'
 import { format } from 'date-fns'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ export default function LeadsClient({ leads: initial }: { leads: PropertyLead[] 
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [drawerNotes, setDrawerNotes] = useState('')
+  const [confirmId, setConfirmId] = useState<string | null>(null)
 
   // Stats
   const totalLeads = leads.length
@@ -103,7 +105,6 @@ export default function LeadsClient({ leads: initial }: { leads: PropertyLead[] 
   }
 
   async function deleteLead(id: string) {
-    if (!confirm('Delete this lead permanently?')) return
     setDeleting(true)
     try {
       await fetch(`/api/leads/${id}`, { method: 'DELETE' })
@@ -111,6 +112,7 @@ export default function LeadsClient({ leads: initial }: { leads: PropertyLead[] 
       setSelected(null)
     } finally {
       setDeleting(false)
+      setConfirmId(null)
     }
   }
 
@@ -346,7 +348,7 @@ export default function LeadsClient({ leads: initial }: { leads: PropertyLead[] 
                   Save notes
                 </button>
                 <button
-                  onClick={() => deleteLead(selected.id)}
+                  onClick={() => setConfirmId(selected.id)}
                   disabled={deleting}
                   className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 ml-auto"
                 >
@@ -358,6 +360,17 @@ export default function LeadsClient({ leads: initial }: { leads: PropertyLead[] 
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmId !== null}
+        title="Delete lead"
+        message="This lead will be permanently removed. This cannot be undone."
+        confirmLabel="Delete"
+        destructive
+        loading={deleting}
+        onConfirm={() => confirmId && deleteLead(confirmId)}
+        onCancel={() => setConfirmId(null)}
+      />
     </div>
   )
 }

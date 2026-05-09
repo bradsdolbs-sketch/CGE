@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Plus, X, Loader2, Pencil, Trash2, ExternalLink, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 type Listing = {
   id: string
@@ -83,6 +84,7 @@ export default function ListingsClient({
   const [editShort, setEditShort] = useState('')
   const [editSaving, setEditSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [generatingFor, setGeneratingFor] = useState<string | null>(null) // 'new' | listing.id
   const [genError, setGenError] = useState<string | null>(null)
 
@@ -166,13 +168,13 @@ export default function ListingsClient({
   }
 
   async function deleteListing(id: string) {
-    if (!confirm('Remove this listing? The property will remain in the system.')) return
     setDeletingId(id)
     try {
       await fetch(`/api/listings/${id}`, { method: 'DELETE' })
       router.refresh()
     } finally {
       setDeletingId(null)
+      setConfirmDeleteId(null)
     }
   }
 
@@ -298,7 +300,7 @@ export default function ListingsClient({
                       <Pencil size={14} />
                     </button>
                     <button
-                      onClick={() => deleteListing(l.id)}
+                      onClick={() => setConfirmDeleteId(l.id)}
                       disabled={deletingId === l.id}
                       className="p-1.5 text-gray-400 hover:text-red-500 transition disabled:opacity-40"
                       title="Remove listing"
@@ -381,6 +383,16 @@ export default function ListingsClient({
           ))}
         </div>
       )}
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="Remove listing"
+        message="This listing will be removed from the site. The property will remain in the system."
+        confirmLabel="Remove"
+        destructive
+        loading={deletingId !== null}
+        onConfirm={() => confirmDeleteId && deleteListing(confirmDeleteId)}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   )
 }

@@ -7,6 +7,7 @@ import { format } from 'date-fns'
 import {
   ArrowLeft, FileText, CheckCircle, Clock, Send, Loader2, ExternalLink, XCircle,
 } from 'lucide-react'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 type Agreement = {
   id: string
@@ -63,6 +64,7 @@ export default function AgreementDetailPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
   const [sendingToTenant, setSendingToTenant] = useState(false)
+  const [confirmCancel, setConfirmCancel] = useState(false)
 
   useEffect(() => {
     fetch(`/api/agreements/${params.id}`)
@@ -110,7 +112,7 @@ export default function AgreementDetailPage() {
   }
 
   async function cancelAgreement() {
-    if (!confirm('Cancel this agreement? This cannot be undone.')) return
+    setConfirmCancel(false)
     setUpdating(true)
     try {
       await fetch(`/api/agreements/${agreement!.id}`, {
@@ -212,7 +214,7 @@ export default function AgreementDetailPage() {
 
         {!['FULLY_SIGNED', 'CANCELLED'].includes(agreement.status) && (
           <button
-            onClick={cancelAgreement}
+            onClick={() => setConfirmCancel(true)}
             disabled={updating}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold rounded-lg transition disabled:opacity-50 ml-auto"
           >
@@ -301,6 +303,16 @@ export default function AgreementDetailPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmCancel}
+        title="Cancel agreement"
+        message="This agreement will be marked as cancelled. This cannot be undone."
+        confirmLabel="Cancel Agreement"
+        destructive
+        loading={updating}
+        onConfirm={cancelAgreement}
+        onCancel={() => setConfirmCancel(false)}
+      />
     </div>
   )
 }
