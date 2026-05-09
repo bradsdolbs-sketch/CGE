@@ -53,6 +53,7 @@ export default function ReferencingDetailClient({ application: initial }: { appl
   const [sendingChecks, setSendingChecks] = useState(false)
   const [calculatingScore, setCalculatingScore] = useState(false)
   const [decidingId, setDecidingId] = useState<string | null>(null)
+  const [generatingReport, setGeneratingReport] = useState(false)
   const [agentNotes, setAgentNotes] = useState(initial.agentNotes ?? '')
   const [savingNotes, setSavingNotes] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -116,6 +117,21 @@ export default function ReferencingDetailClient({ application: initial }: { appl
       setError(e instanceof Error ? e.message : 'Failed')
     } finally {
       setDecidingId(null)
+    }
+  }
+
+  async function generateReport() {
+    setGeneratingReport(true); setError(null)
+    try {
+      const res = await fetch(`/api/referencing/${app.id}/report`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to generate report')
+      setSuccess('Report generated and sent to agents and landlord for approval')
+      router.refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setGeneratingReport(false)
     }
   }
 
@@ -224,6 +240,17 @@ export default function ReferencingDetailClient({ application: initial }: { appl
               {decidingId === 'FAILED' ? <Loader2 size={13} className="animate-spin" /> : <XCircle size={13} />} Fail
             </button>
           </>
+        )}
+
+        {app.affordabilityScore !== null && (
+          <button
+            onClick={generateReport}
+            disabled={generatingReport}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1A3D2B] hover:bg-[#122B1E] text-white text-xs font-semibold rounded-lg transition disabled:opacity-50 ml-auto"
+          >
+            {generatingReport ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+            {generatingReport ? 'Generating…' : 'Generate & Send Report'}
+          </button>
         )}
       </div>
 

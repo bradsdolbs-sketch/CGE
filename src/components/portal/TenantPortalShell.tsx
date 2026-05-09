@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import {
-  Home, Wrench, FileText, CreditCard, User, LogOut, Menu, X, ClipboardCheck,
+  Home, Wrench, FileText, CreditCard, User, LogOut, Menu, X, ClipboardCheck, PenLine,
 } from 'lucide-react'
 
 interface Props {
@@ -20,6 +20,7 @@ const navItems = [
   { label: 'Maintenance', href: '/portal/tenant/maintenance', icon: Wrench },
   { label: 'Documents', href: '/portal/tenant/documents', icon: FileText },
   { label: 'Payments', href: '/portal/tenant/payments', icon: CreditCard },
+  { label: 'Agreement', href: '/portal/tenant/agreement', icon: PenLine },
   { label: 'Profile', href: '/portal/tenant/profile', icon: User },
 ]
 

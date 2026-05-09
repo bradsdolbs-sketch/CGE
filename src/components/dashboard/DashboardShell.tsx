@@ -46,6 +46,7 @@ const navSections = [
       { label: 'Active Tenancies', href: '/dashboard/tenancies', icon: FileText },
       { label: 'Renewals', href: '/dashboard/tenancies?filter=renewals', icon: RotateCcw },
       { label: 'Referencing', href: '/dashboard/referencing', icon: ClipboardCheck },
+      { label: 'Agreements', href: '/dashboard/agreements', icon: FileText },
     ],
   },
   {

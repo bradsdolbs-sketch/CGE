@@ -152,6 +152,7 @@ model Property {
   complianceItems  ComplianceItem[]
   enquiries        Enquiry[]
   viewings         Viewing[]
+  offers           Offer[]
 
   @@map("properties")
 }
@@ -304,6 +305,7 @@ model Tenancy {
   rentPayments RentPayment[]
   documents    Document[]      @relation("TenancyDocuments")
   notesList    Note[]          @relation("TenancyNotes")
+  agreements   Agreement[]
 
   @@map("tenancies")
 }
@@ -652,8 +654,10 @@ model Enquiry {
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
-  property Property? @relation(fields: [propertyId], references: [id])
+  property  Property? @relation(fields: [propertyId], references: [id])
   viewings  Viewing[]
+  offer     Offer?
+  agreements Agreement[]
 
   @@map("enquiries")
 }
@@ -835,6 +839,12 @@ model TenantReferenceApplication {
   affordabilityPass      Boolean?
   scoreBreakdown         String?   @db.Text  // JSON
 
+  // Landlord approval
+  landlordApprovalStatus String?   // PENDING | APPROVED | DECLINED | MODIFICATION_REQUESTED
+  landlordApprovalNote   String?   @db.Text
+  landlordApprovalAt     DateTime?
+  reportUrl              String?
+
   // Admin
   agentNotes             String?   @db.Text
   submittedAt            DateTime?
@@ -928,4 +938,67 @@ enum PropertyLeadServiceInterest {
   TENANT_FIND
   RENT_COLLECTION
   NOT_SURE
+}
+
+// ─── OFFERS ──────────────────────────────────────────────────────────────────
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  MODIFIED
+}
+
+model Offer {
+  id                String      @id @default(cuid())
+  enquiryId         String      @unique
+  propertyId        String
+  proposedRent      Int
+  startDate         DateTime
+  tenancyTerm       Int
+  depositAmount     Int
+  depositScheme     String      @default("TDS")
+  specialConditions String?     @db.Text
+  status            OfferStatus @default(PENDING)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  enquiry   Enquiry  @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  property  Property @relation(fields: [propertyId], references: [id])
+
+  @@map("offers")
+}
+
+// ─── AGREEMENTS ──────────────────────────────────────────────────────────────
+
+enum AgreementStatus {
+  DRAFT
+  AGENT_REVIEW
+  PENDING_TENANT_SIGNATURE
+  PENDING_LANDLORD_SIGNATURE
+  FULLY_SIGNED
+  CANCELLED
+}
+
+model Agreement {
+  id                 String          @id @default(cuid())
+  enquiryId          String?
+  tenancyId          String?
+  draftUrl           String
+  finalUrl           String?
+  status             AgreementStatus @default(DRAFT)
+  tenantSignedAt     DateTime?
+  tenantSignedName   String?
+  tenantSignedIp     String?
+  landlordSignedAt   DateTime?
+  landlordSignedName String?
+  landlordSignedIp   String?
+  agentApprovedAt    DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  enquiry  Enquiry?  @relation(fields: [enquiryId], references: [id])
+  tenancy  Tenancy?  @relation(fields: [tenancyId], references: [id])
+
+  @@map("agreements")
 }
