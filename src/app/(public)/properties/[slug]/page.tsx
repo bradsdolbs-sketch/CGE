@@ -25,6 +25,8 @@ import { getFileUrl } from '@/lib/file-url'
 import type { PropertyWithListing } from '@/types'
 import type { Metadata } from 'next'
 
+export const dynamic = 'force-dynamic'
+
 interface Props {
   params: { slug: string }
 }

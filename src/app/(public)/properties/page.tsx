@@ -6,6 +6,8 @@ import type { PropertyWithListing } from '@/types'
 import type { Prisma } from '@prisma/client'
 import type { Metadata } from 'next'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Properties',
   description:

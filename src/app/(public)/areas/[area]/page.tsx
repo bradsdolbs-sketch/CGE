@@ -6,6 +6,8 @@ import PropertyCard from '@/components/public/PropertyCard'
 import type { PropertyWithListing, AreaGuide } from '@/types'
 import type { Metadata } from 'next'
 
+export const dynamic = 'force-dynamic'
+
 // ─── Area Data ─────────────────────────────────────────────────────────────────
 
 const AREA_DATA: Record<string, AreaGuide> = {
