@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendReferencingInviteEmail } from '@/lib/email'
 
+export const dynamic = 'force-dynamic'
+
 // Agent creates a referencing application for a tenant
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)

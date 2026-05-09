@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import slugify from 'slugify'
 import type { Prisma } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const status = searchParams.get('status')

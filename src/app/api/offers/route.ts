@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 // POST /api/offers — create or update an offer for an enquiry
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)

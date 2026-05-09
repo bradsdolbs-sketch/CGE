@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getGoCardlessClient } from '@/lib/gocardless'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/gocardless/mandate
  * Body: { tenantId: string }

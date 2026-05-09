@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 function escapeXml(str: string): string {
   return str
     .replace(/&/g, '&amp;')

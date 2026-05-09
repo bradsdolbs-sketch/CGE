@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 const VALID_ROLES = ['ADMIN', 'AGENT', 'LANDLORD', 'TENANT']
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {

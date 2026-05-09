@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { jwtVerify } from 'jose'
 import bcrypt from 'bcryptjs'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: Request) {
   try {
     const { token, password } = await req.json()

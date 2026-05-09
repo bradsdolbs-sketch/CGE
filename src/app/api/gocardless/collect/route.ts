@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { getGoCardlessClient, toPence, GC_ACTIVE_MANDATE_STATUSES } from '@/lib/gocardless'
 import { PaymentCurrency } from 'gocardless-nodejs/types/Types'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/gocardless/collect
  * Body: { rentPaymentId: string }

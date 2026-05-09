@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendRentArrearsTenantEmail, sendRentArrearsLandlordEmail } from '@/lib/email'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: NextRequest) {
   const cronSecret = req.headers.get('x-cron-secret')
   const isCron = cronSecret && cronSecret === process.env.CRON_SECRET

@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 // ─── Per-IP rate limit (in-memory, resets on restart) ────────────────────────
 const ipHits = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT = 5

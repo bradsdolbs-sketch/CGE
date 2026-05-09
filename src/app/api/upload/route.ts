@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { saveFile } from '@/lib/upload'
 
+export const dynamic = 'force-dynamic'
+
 const MAX_SIZE = 10 * 1024 * 1024 // 10MB
 
 export async function POST(req: NextRequest) {

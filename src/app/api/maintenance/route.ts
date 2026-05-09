@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
 import type { Prisma } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

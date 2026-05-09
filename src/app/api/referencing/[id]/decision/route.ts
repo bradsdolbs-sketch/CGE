@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendReferencingCompleteEmail } from '@/lib/email'
 
+export const dynamic = 'force-dynamic'
+
 // Agent sets final PASSED / CONDITIONAL / FAILED decision
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)

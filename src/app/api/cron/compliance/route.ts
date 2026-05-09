@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
 
+export const dynamic = 'force-dynamic'
+
 const THRESHOLDS = [30, 14, 7]
 
 function daysUntil(date: Date) {

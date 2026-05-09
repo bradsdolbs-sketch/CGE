@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { SignJWT } from 'jose'
 import { sendEmployerVerificationEmail, sendPreviousLandlordVerificationEmail } from '@/lib/email'
 
+export const dynamic = 'force-dynamic'
+
 const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET!)
 
 async function signVerifyToken(payload: Record<string, unknown>): Promise<string> {

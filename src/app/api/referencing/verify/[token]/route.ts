@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET!)
 
 // Called from the public verify page when employer/landlord submits their response

@@ -7,6 +7,8 @@ import type { ImageBlockParam, TextBlockParam } from '@anthropic-ai/sdk/resource
 import fs from 'fs/promises'
 import path from 'path'
 
+export const dynamic = 'force-dynamic'
+
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? path.join(process.cwd(), 'uploads')

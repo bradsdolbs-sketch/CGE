@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { addMonths, startOfMonth } from 'date-fns'
 import type { Prisma } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'AGENT')) {

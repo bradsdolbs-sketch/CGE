@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getGoCardlessClient } from '@/lib/gocardless'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/gocardless/mandate/confirm?redirect_flow_id=...
  *
