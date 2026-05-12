@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Upload, Loader2, CheckCircle, X, ChevronRight, ChevronLeft } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Upload, Loader2, CheckCircle, X, ChevronRight, ChevronLeft, ShieldCheck, AlertTriangle, Clock, Landmark } from 'lucide-react'
 
 type InitialData = {
   employerName: string; employerEmail: string; employerPhone: string
@@ -24,25 +24,41 @@ const DOC_TYPES = [
   { value: 'PROOF_OF_ADDRESS', label: 'Proof of address (utility bill / council tax)', required: false },
 ]
 
-const STEPS = ['Employment', 'Previous Tenancy', 'Documents', 'Review & Submit']
+const STEPS = ['Employment', 'Previous Tenancy', 'Documents', 'Verify Identity', 'Review & Submit']
 
 export default function ReferencingForm({
   applicationId,
   initial,
   existingDocs,
+  idVerificationStatus,
+  idVerifiedName,
+  openBankingStatus,
+  openBankingVerifiedSalary,
 }: {
   applicationId: string
   initial: InitialData
   existingDocs: ExistingDoc[]
+  idVerificationStatus: string
+  idVerifiedName: string | null
+  openBankingStatus: string
+  openBankingVerifiedSalary: number | null
 }) {
   const router = useRouter()
-  const [step, setStep] = useState(0)
+  const searchParams = useSearchParams()
+  const [step, setStep] = useState(() => {
+    // If returning from Stripe, jump to the identity step so they see the result
+    return searchParams.get('id_verification') === 'complete' ? 3 : 0
+  })
   const [form, setForm] = useState<InitialData>(initial)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null)
   const [docs, setDocs] = useState<ExistingDoc[]>(existingDocs)
   const [submitted, setSubmitted] = useState(false)
+  const [idStatus, setIdStatus] = useState(idVerificationStatus)
+  const [idStarting, setIdStarting] = useState(false)
+  const [obStatus, setObStatus] = useState(openBankingStatus)
+  const [obStarting, setObStarting] = useState(false)
 
   function set(k: keyof InitialData, v: string) {
     setForm((f) => ({ ...f, [k]: v }))
@@ -108,6 +124,40 @@ export default function ReferencingForm({
       setError(e instanceof Error ? e.message : 'Upload failed')
     } finally {
       setUploadingDoc(null)
+    }
+  }
+
+  async function startIdVerification() {
+    setIdStarting(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/referencing/${applicationId}/id-verification`, { method: 'POST' })
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to start verification')
+      const { url } = await res.json()
+      setIdStatus('PENDING')
+      window.location.href = url
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to start verification')
+      setIdStarting(false)
+    }
+  }
+
+  async function connectOpenBanking() {
+    setObStarting(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/referencing/open-banking/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to connect bank')
+      const { authUrl } = await res.json()
+      setObStatus('PENDING_AUTH')
+      window.location.href = authUrl
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to connect bank')
+      setObStarting(false)
     }
   }
 
@@ -281,11 +331,118 @@ export default function ReferencingForm({
               )
             })}
           </div>
+
+          {/* Open banking alternative */}
+          <div className="border border-dashed border-gray-300 rounded-xl p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Landmark size={18} className={obStatus === 'VERIFIED' ? 'text-green-600' : 'text-gray-400'} />
+              <p className="text-sm font-semibold text-[#1a1a1a]">
+                {obStatus === 'VERIFIED' ? 'Bank connected — income verified' : 'Skip payslips — connect your bank instead'}
+              </p>
+            </div>
+
+            {obStatus === 'VERIFIED' ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 text-sm text-green-800">
+                <CheckCircle size={14} className="inline mr-1.5" />
+                Income automatically verified from 90 days of transactions.
+                {openBankingVerifiedSalary && <span className="font-medium ml-1">£{(openBankingVerifiedSalary).toLocaleString()} pa detected.</span>}
+              </div>
+            ) : obStatus === 'PENDING_AUTH' || obStatus === 'CONNECTED' ? (
+              <p className="text-xs text-blue-600">Connecting to your bank…</p>
+            ) : (
+              <>
+                <p className="text-xs text-gray-500">We'll securely read 90 days of your bank transactions to verify your income automatically. Your payslips won't be required if we can confirm your salary.</p>
+                <button
+                  type="button"
+                  onClick={connectOpenBanking}
+                  disabled={obStarting}
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#1A3D2B] border border-[#1A3D2B] rounded-lg hover:bg-[#1A3D2B] hover:text-white transition disabled:opacity-50"
+                >
+                  {obStarting ? <Loader2 size={12} className="animate-spin" /> : <Landmark size={12} />}
+                  {obStarting ? 'Connecting…' : 'Connect your bank'}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
 
-      {/* ── Step 3: Review & Submit ─────────────────────────────────────────── */}
+      {/* ── Step 3: Verify Identity ─────────────────────────────────────────── */}
       {step === 3 && (
+        <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-5">
+          <div className="flex items-center gap-3">
+            <ShieldCheck size={24} className="text-[#1A3D2B]" />
+            <div>
+              <h2 className="font-bold text-[#1a1a1a]">Identity Verification</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Verify your identity with a photo ID and selfie — takes about 2 minutes.</p>
+            </div>
+          </div>
+
+          {idStatus === 'VERIFIED' && (
+            <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <CheckCircle size={20} className="text-green-600 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-green-800 text-sm">Identity verified</p>
+                {idVerifiedName && <p className="text-xs text-green-700 mt-0.5">Name confirmed: {idVerifiedName}</p>}
+              </div>
+            </div>
+          )}
+
+          {idStatus === 'REQUIRES_INPUT' && (
+            <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <AlertTriangle size={20} className="text-amber-600 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-amber-800 text-sm">Additional information required</p>
+                <p className="text-xs text-amber-700 mt-0.5">Your verification needs attention. Please try again.</p>
+              </div>
+            </div>
+          )}
+
+          {idStatus === 'PENDING' && (
+            <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <Clock size={20} className="text-blue-600 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-blue-800 text-sm">Verification in progress</p>
+                <p className="text-xs text-blue-700 mt-0.5">Your verification is being processed. This may take a moment.</p>
+              </div>
+            </div>
+          )}
+
+          {(idStatus === 'NOT_STARTED' || !idStatus || idStatus === 'REQUIRES_INPUT') && (
+            <button
+              onClick={startIdVerification}
+              disabled={idStarting}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-[#1A3D2B] hover:bg-[#122B1E] text-white font-semibold rounded-lg transition disabled:opacity-50"
+            >
+              {idStarting ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+              {idStarting ? 'Starting…' : idStatus === 'REQUIRES_INPUT' ? 'Try Again' : 'Start Identity Check'}
+            </button>
+          )}
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setStep(4)}
+              className="text-sm text-gray-400 hover:text-gray-600 underline transition"
+            >
+              Skip for now
+            </button>
+            <p className="text-xs text-gray-400 mt-1">You can complete identity verification later, but it may delay your application.</p>
+          </div>
+
+          <div className="text-xs text-gray-400 bg-gray-50 rounded-lg p-3">
+            <p className="font-medium text-gray-500 mb-1">What you'll need</p>
+            <ul className="space-y-1 list-disc list-inside">
+              <li>A valid passport, driving licence, or national ID card</li>
+              <li>A camera on your phone or computer for a selfie</li>
+            </ul>
+            <p className="mt-2">Powered by <span className="font-medium">Stripe Identity</span> — your data is encrypted and processed securely.</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 4: Review & Submit ─────────────────────────────────────────── */}
+      {step === 4 && (
         <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-5">
           <h2 className="font-bold text-[#1a1a1a]">Review & Submit</h2>
 
@@ -297,6 +454,7 @@ export default function ReferencingForm({
             <ReviewRow label="Annual salary" value={form.annualSalary ? `£${parseInt(form.annualSalary).toLocaleString()}` : '—'} />
             <ReviewRow label="Previous landlord" value={form.prevLandlordName || 'Not provided'} />
             <ReviewRow label="Documents uploaded" value={`${docs.length} / ${DOC_TYPES.filter((d) => d.required).length} required`} />
+            <ReviewRow label="Identity verification" value={idStatus === 'VERIFIED' ? `✓ Verified${idVerifiedName ? ` (${idVerifiedName})` : ''}` : idStatus === 'PENDING' ? 'In progress' : 'Not completed'} />
           </div>
 
           <div className="bg-[#F0EBE0] border border-[#1A3D2B]/20 rounded-lg p-4 text-sm text-[#1a1a1a]">

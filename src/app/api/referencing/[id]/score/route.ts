@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { computeAutoDecision } from '@/lib/auto-decision'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +15,10 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   const app = await prisma.tenantReferenceApplication.findUnique({
     where: { id: params.id },
-    include: { documents: true },
+    include: {
+      documents: true,
+      tenant: { select: { firstName: true } },
+    },
   })
   if (!app) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -156,15 +160,42 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   const finalScore = Math.round((totalScore / totalMax) * 100)
   const affordabilityPass = finalScore >= 60 && (breakdown['Affordability']?.score ?? 0) >= 20
 
+  const autoDecision = computeAutoDecision({
+    affordabilityScore: finalScore,
+    affordabilityPass,
+    idVerificationStatus: app.idVerificationStatus ?? 'NOT_STARTED',
+    prevLandlordArrears: app.prevLandlordArrears,
+  })
+
   const updated = await prisma.tenantReferenceApplication.update({
     where: { id: params.id },
     data: {
       affordabilityScore: finalScore,
       affordabilityPass,
       scoreBreakdown: JSON.stringify(breakdown),
-      status: 'UNDER_REVIEW',
+      status: autoDecision.decision,
+      decisionSource: 'AUTO',
+      decisionReason: autoDecision.reason,
+      completedAt: new Date(),
     },
   })
 
-  return NextResponse.json({ score: finalScore, pass: affordabilityPass, breakdown, application: updated })
+  // Notify all agents
+  const agents = await prisma.user.findMany({
+    where: { role: { in: ['ADMIN', 'AGENT'] }, active: true },
+    select: { id: true },
+  })
+  await Promise.all(agents.map((agent) =>
+    prisma.notification.create({
+      data: {
+        userId: agent.id,
+        type: 'GENERAL',
+        title: `Auto-decision: ${autoDecision.decision} — ${app.tenant?.firstName ?? 'Tenant'}`,
+        message: autoDecision.reason,
+        link: `/dashboard/referencing/${params.id}`,
+      },
+    })
+  ))
+
+  return NextResponse.json({ score: finalScore, pass: affordabilityPass, breakdown, decision: autoDecision, application: updated })
 }

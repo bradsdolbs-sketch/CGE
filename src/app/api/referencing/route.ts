@@ -46,16 +46,20 @@ export async function POST(req: NextRequest) {
       data: { referencingStatus: 'IN_PROGRESS' },
     })
 
-    // Send invite email if requested
+    // Send invite email if requested — non-fatal if it fails
     if (sendInvite && tenant.user.email) {
       const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
       const referencingUrl = `${baseUrl}/portal/tenant/referencing`
-      await sendReferencingInviteEmail(
-        tenant.user.email,
-        `${tenant.firstName} ${tenant.lastName}`,
-        'your new property',
-        referencingUrl,
-      )
+      try {
+        await sendReferencingInviteEmail(
+          tenant.user.email,
+          `${tenant.firstName} ${tenant.lastName}`,
+          'your new property',
+          referencingUrl,
+        )
+      } catch (emailErr) {
+        console.error('Referencing invite email failed (non-fatal):', emailErr)
+      }
     }
 
     return NextResponse.json(application, { status: 201 })

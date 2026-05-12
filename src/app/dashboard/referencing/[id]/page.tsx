@@ -13,12 +13,23 @@ export default async function ReferencingDetailPage({ params }: { params: { id: 
   const application = await prisma.tenantReferenceApplication.findUnique({
     where: { id: params.id },
     include: {
-      tenant: { include: { user: true } },
+      tenant: {
+        include: {
+          user: true,
+          tenancies: {
+            include: { tenancy: { include: { guarantors: true } } },
+            take: 1,
+            orderBy: { tenancy: { createdAt: 'desc' } },
+          },
+        },
+      },
       documents: { orderBy: { uploadedAt: 'asc' } },
     },
   })
 
   if (!application) notFound()
 
-  return <ReferencingDetailClient application={application} />
+  const guarantors = application.tenant.tenancies[0]?.tenancy.guarantors ?? []
+
+  return <ReferencingDetailClient application={application} guarantors={guarantors} />
 }

@@ -107,6 +107,11 @@ export default async function TenantReferencingPage() {
                 done: application.prevLandlordConfirmed,
                 date: application.prevLandlordConfirmedAt ? new Date(application.prevLandlordConfirmedAt).toLocaleDateString('en-GB') : null,
               },
+              {
+                label: 'Identity verification',
+                done: application.idVerificationStatus === 'VERIFIED',
+                date: application.idVerifiedAt ? new Date(application.idVerifiedAt).toLocaleDateString('en-GB') : null,
+              },
               { label: 'Agent review', done: false, date: null },
             ].map((step, i) => (
               <div key={i} className="flex items-center gap-3">
@@ -132,6 +137,10 @@ export default async function TenantReferencingPage() {
       </div>
       <ReferencingForm
         applicationId={application.id}
+        idVerificationStatus={application.idVerificationStatus}
+        idVerifiedName={application.idVerifiedName ?? null}
+        openBankingStatus={application.openBankingStatus}
+        openBankingVerifiedSalary={application.openBankingVerifiedSalary ?? null}
         initial={{
           employerName: application.employerName ?? '',
           employerEmail: application.employerEmail ?? '',

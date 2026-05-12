@@ -518,6 +518,106 @@ export async function sendPreviousLandlordVerificationEmail(
   })
 }
 
+// ─── Contractor Job Dispatch (magic-link email to contractor) ─────────────────
+
+export async function sendContractorJobEmail({
+  to,
+  contractorName,
+  agencyName,
+  jobTitle,
+  jobDescription,
+  propertyAddress,
+  priority,
+  magicLink,
+  tenantContactName,
+  tenantContactPhone,
+  accessNotes,
+}: {
+  to: string
+  contractorName: string
+  agencyName: string
+  jobTitle: string
+  jobDescription: string
+  propertyAddress: string
+  priority: string
+  magicLink: string
+  tenantContactName?: string
+  tenantContactPhone?: string
+  accessNotes?: string
+}): Promise<void> {
+  const priorityColor = priority === 'EMERGENCY' ? '#dc3545' : priority === 'URGENT' ? '#fd7e14' : '#1A3D2B'
+  const priorityLabel = priority.charAt(0) + priority.slice(1).toLowerCase()
+
+  const html = wrapEmail(`
+    <h1>New Job Assigned</h1>
+    <p>Hi ${contractorName}, ${agencyName} has assigned you a maintenance job. Please review the details below and accept or decline.</p>
+    <div class="alert-box">
+      <div class="detail-row"><span class="detail-label">Job</span><span class="detail-value">${jobTitle}</span></div>
+      <div class="detail-row"><span class="detail-label">Property</span><span class="detail-value">${propertyAddress}</span></div>
+      <div class="detail-row"><span class="detail-label">Priority</span><span class="detail-value" style="color:${priorityColor};font-weight:700;">${priorityLabel}</span></div>
+      ${tenantContactName ? `<div class="detail-row"><span class="detail-label">Tenant Contact</span><span class="detail-value">${tenantContactName}${tenantContactPhone ? ` &bull; ${tenantContactPhone}` : ''}</span></div>` : ''}
+    </div>
+    <h2>Description</h2>
+    <p style="white-space:pre-line;">${jobDescription}</p>
+    ${accessNotes ? `<h2>Access Notes</h2><p style="white-space:pre-line;">${accessNotes}</p>` : ''}
+    <p style="margin:28px 0 8px;"><strong>Tap the button below to view the full job and respond:</strong></p>
+    <p style="margin:0 0 24px;">
+      <a href="${magicLink}" class="btn" style="background:#c4622d;font-size:16px;padding:14px 32px;">View Job &amp; Respond →</a>
+    </p>
+    <p style="font-size:13px;color:#737373;">This link is unique to you and expires in 30 days. Do not forward it to others.</p>
+  `, `New job from ${agencyName}: ${jobTitle} at ${propertyAddress}`)
+
+  await sendEmail({
+    to,
+    subject: `New job assigned: ${jobTitle} — ${propertyAddress}`,
+    html,
+    replyTo: 'hello@centralgateestates.com',
+  })
+}
+
+// ─── Contractor Completion Alert (to agents) ──────────────────────────────────
+
+export async function sendContractorCompletionAlert({
+  to,
+  agentName,
+  agencyName,
+  contractorName,
+  jobTitle,
+  propertyAddress,
+  completionNote,
+  dashboardUrl,
+}: {
+  to: string
+  agentName: string
+  agencyName: string
+  contractorName: string
+  jobTitle: string
+  propertyAddress: string
+  completionNote: string
+  dashboardUrl: string
+}): Promise<void> {
+  const html = wrapEmail(`
+    <h1>Job Marked Complete</h1>
+    <p>Hi ${agentName}, ${contractorName} has marked a maintenance job as complete.</p>
+    <div class="alert-box" style="border-left-color:#28a745;">
+      <div class="detail-row"><span class="detail-label">Job</span><span class="detail-value">${jobTitle}</span></div>
+      <div class="detail-row"><span class="detail-label">Property</span><span class="detail-value">${propertyAddress}</span></div>
+      <div class="detail-row"><span class="detail-label">Contractor</span><span class="detail-value">${contractorName}</span></div>
+    </div>
+    <h2>Completion Notes</h2>
+    <p style="white-space:pre-line;">${completionNote}</p>
+    <p style="margin:24px 0;">
+      <a href="${dashboardUrl}" class="btn">View Job in Dashboard →</a>
+    </p>
+  `, `${contractorName} completed: ${jobTitle} at ${propertyAddress}`)
+
+  await sendEmail({
+    to,
+    subject: `Job complete: ${jobTitle} — ${propertyAddress}`,
+    html,
+  })
+}
+
 // ─── Referencing Complete (to agent) ─────────────────────────────────────────
 
 export async function sendReferencingCompleteEmail(
@@ -546,6 +646,42 @@ export async function sendReferencingCompleteEmail(
   await sendEmail({
     to: agentEmail,
     subject: `Referencing complete: ${tenantName} — Score ${score}/100 (${status})`,
+    html,
+  })
+}
+
+// ─── Guarantor Invite ─────────────────────────────────────────────────────────
+
+export async function sendGuarantorInviteEmail(
+  guarantorEmail: string,
+  guarantorName: string,
+  tenantName: string,
+  propertyAddress: string,
+  portalUrl: string,
+): Promise<void> {
+  const html = wrapEmail(`
+    <h1>Guarantor Application Invitation</h1>
+    <p>Dear ${guarantorName},</p>
+    <p>You have been invited to act as a guarantor for <strong>${tenantName}</strong> who is applying to rent <strong>${propertyAddress}</strong>.</p>
+    <p>As a guarantor, you agree to cover the rent and any liabilities should the tenant be unable to pay. We need to conduct a brief referencing check on you first.</p>
+    <p>This takes approximately <strong>5–10 minutes</strong> and you will need:</p>
+    <ul style="font-size:15px;line-height:1.8;color:#404040;padding-left:20px;">
+      <li>Your employment details and annual income</li>
+      <li>Your current address</li>
+      <li>Date of birth and National Insurance number</li>
+    </ul>
+    <div class="alert-box">
+      <p style="margin:0;font-size:14px;"><strong>Important:</strong> This link expires in 14 days. Please complete your application as soon as possible.</p>
+    </div>
+    <p style="margin:24px 0;">
+      <a href="${portalUrl}" class="btn">Complete Guarantor Application →</a>
+    </p>
+    <p style="font-size:13px;color:#737373;">If you have any questions, please contact us directly.</p>
+  `, 'Complete your guarantor application')
+
+  await sendEmail({
+    to: guarantorEmail,
+    subject: `Guarantor application: ${tenantName} — ${propertyAddress}`,
     html,
   })
 }

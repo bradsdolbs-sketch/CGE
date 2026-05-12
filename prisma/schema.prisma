@@ -333,6 +333,32 @@ model Guarantor {
   employer     String?
   annualSalary Int?
 
+  // Referencing (Phase 6)
+  dob          DateTime?
+  niNumber     String?
+  addressLine1 String?
+  postcode     String?
+
+  guarantorEmployerName       String?
+  guarantorEmployerEmail      String?
+  guarantorJobTitle           String?
+  guarantorContractType       String?
+  guarantorEmploymentStart    DateTime?
+  guarantorEmployerConfirmed  Boolean   @default(false)
+  guarantorConfirmedSalary    Int?
+  guarantorConfirmedAt        DateTime?
+
+  guarantorAffordabilityScore Int?
+  guarantorAffordabilityPass  Boolean?
+  guarantorScoreBreakdown     String?   @db.Text
+
+  guarantorRefStatus    ReferenceStatus @default(PENDING_SUBMISSION)
+  guarantorInvitedAt    DateTime?
+  guarantorSubmittedAt  DateTime?
+  portalToken           String?         @unique
+  portalTokenExpiry     DateTime?
+  refApplicationId      String?
+
   tenancy Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
 
   @@map("guarantors")
@@ -488,6 +514,19 @@ model MaintenanceRequest {
   invoiceUrl      String?
   photos          String[]
   notes           String?             @db.Text
+
+  // Contractor magic-link job dispatch (no contractor login required)
+  contractorToken            String?   @unique
+  contractorTokenExpiry      DateTime?
+  contractorNotifiedAt       DateTime?
+  contractorAcceptedAt       DateTime?
+  contractorDeclinedAt       DateTime?
+  contractorDeclineReason    String?   @db.Text
+  contractorCompletedAt      DateTime?
+  contractorCompletionNote   String?   @db.Text
+  contractorCompletionPhotos String[]
+  contractorReportUrl        String?
+
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
@@ -598,8 +637,13 @@ model ComplianceItem {
   @@map("compliance_items")
 }
 
+enum RtrCheckType {
+  MANUAL_DOCUMENT
+  GOV_UK_SHARE_CODE
+}
+
 model RightToRentCheck {
-  id           String   @id @default(cuid())
+  id           String       @id @default(cuid())
   tenantId     String
   checkDate    DateTime
   documentType String
@@ -607,7 +651,14 @@ model RightToRentCheck {
   documentUrl  String?
   checkedBy    String?
   notes        String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime     @default(now())
+
+  checkType    RtrCheckType @default(MANUAL_DOCUMENT)
+  shareCode    String?
+  tenantDob    String?
+  verified     Boolean      @default(false)
+  verifiedAt   DateTime?
+  verifiedBy   String?
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -798,6 +849,36 @@ enum ReferenceStatus {
   FAILED
 }
 
+enum IdVerificationStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  FAILED
+  REQUIRES_INPUT
+}
+
+enum OpenBankingStatus {
+  NOT_STARTED
+  PENDING_AUTH
+  CONNECTED
+  VERIFIED
+  FAILED
+  SKIPPED
+}
+
+enum DecisionSource {
+  AUTO
+  AGENT_OVERRIDE
+}
+
+enum CreditCheckStatus {
+  NOT_REQUESTED
+  PENDING
+  COMPLETED
+  FAILED
+  CONSENT_REQUIRED
+}
+
 model TenantReferenceApplication {
   id        String          @id @default(cuid())
   tenantId  String
@@ -844,6 +925,39 @@ model TenantReferenceApplication {
   landlordApprovalNote   String?   @db.Text
   landlordApprovalAt     DateTime?
   reportUrl              String?
+
+  // Companies House (Phase 2)
+  companiesHouseNumber  String?
+  companiesHouseStatus  String?
+  companiesHouseMatch   Boolean?
+
+  // Stripe Identity (Phase 3)
+  idVerificationStatus      IdVerificationStatus @default(NOT_STARTED)
+  idVerificationSessionId   String?
+  idVerifiedName            String?
+  idVerifiedDob             String?
+  idVerifiedAt              DateTime?
+  idVerificationFailReason  String?
+
+  // Open Banking (Phase 4)
+  openBankingStatus         OpenBankingStatus @default(NOT_STARTED)
+  openBankingConnectedAt    DateTime?
+  openBankingVerifiedAt     DateTime?
+  openBankingVerifiedSalary Int?
+  openBankingRawData        String?   @db.Text
+
+  // Auto-decision (Phase 5)
+  decisionSource  DecisionSource?
+  decisionReason  String?          @db.Text
+
+  // Credit check (Phase 7 — stubbed)
+  creditCheckStatus  CreditCheckStatus @default(NOT_REQUESTED)
+  creditScore        Int?
+  creditProvider     String?
+  creditCheckedAt    DateTime?
+  creditCheckRef     String?
+  ccjCount           Int?
+  bankruptcyFlag     Boolean?
 
   // Admin
   agentNotes             String?   @db.Text

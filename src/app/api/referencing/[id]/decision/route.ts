@@ -42,6 +42,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         status: decision,
         agentNotes: agentNotes || app.agentNotes,
         completedAt: new Date(),
+        decisionSource: 'AGENT_OVERRIDE',
+        decisionReason: `Agent override by ${session.user.name ?? session.user.email}: ${agentNotes ?? 'No reason given'}`,
       },
     }),
     prisma.tenant.update({

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, CheckCircle, Upload } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Send, Clock, ThumbsUp, ThumbsDown, Upload } from 'lucide-react'
 import type { MaintenanceRequest, Property, Contractor, MaintenanceUpdate } from '@prisma/client'
 
 type RequestFull = MaintenanceRequest & {
@@ -39,6 +39,8 @@ export default function MaintenanceDetailClient({ request, contractors }: { requ
   const [quoteAmount, setQuoteAmount] = useState(request.quoteAmount ? String(request.quoteAmount) : '')
   const [saving, setSaving] = useState(false)
   const [addingUpdate, setAddingUpdate] = useState(false)
+  const [dispatching, setDispatching] = useState(false)
+  const [dispatchError, setDispatchError] = useState<string | null>(null)
 
   async function assignContractor() {
     setSaving(true)
@@ -81,6 +83,22 @@ export default function MaintenanceDetailClient({ request, contractors }: { requ
       router.refresh()
     } finally {
       setAddingUpdate(false)
+    }
+  }
+
+  async function dispatchToContractor() {
+    setDispatching(true)
+    setDispatchError(null)
+    try {
+      const res = await fetch(`/api/maintenance/${request.id}/assign-contractor`, { method: 'POST' })
+      if (!res.ok) {
+        const d = await res.json()
+        setDispatchError(d.error ?? 'Failed to dispatch')
+      } else {
+        router.refresh()
+      }
+    } finally {
+      setDispatching(false)
     }
   }
 
@@ -140,17 +158,108 @@ export default function MaintenanceDetailClient({ request, contractors }: { requ
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <h2 className="font-semibold text-[#1a1a1a] mb-3">Contractor</h2>
         {request.contractor ? (
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="font-medium text-[#1a1a1a]">{request.contractor.name}</p>
-              <p className="text-sm text-gray-500">{request.contractor.trade}</p>
-              <p className="text-sm text-gray-500">{request.contractor.phone}</p>
+          <div className="space-y-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="font-medium text-[#1a1a1a]">{request.contractor.name}</p>
+                <p className="text-sm text-gray-500">{request.contractor.trade}</p>
+                <p className="text-sm text-gray-500">{request.contractor.phone}</p>
+                {request.contractor.email && (
+                  <p className="text-sm text-gray-500">{request.contractor.email}</p>
+                )}
+              </div>
+              {request.status === 'AWAITING_APPROVAL' && (
+                <button onClick={approveQuote} disabled={saving} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition disabled:opacity-60">
+                  <CheckCircle size={15} />Approve Quote (£{request.quoteAmount?.toLocaleString()})
+                </button>
+              )}
             </div>
-            {request.status === 'AWAITING_APPROVAL' && (
-              <button onClick={approveQuote} disabled={saving} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition disabled:opacity-60">
-                <CheckCircle size={15} />Approve Quote (£{request.quoteAmount?.toLocaleString()})
-              </button>
-            )}
+
+            {/* Magic-link dispatch status */}
+            <div className="border-t border-gray-100 pt-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Job Dispatch</p>
+              {request.contractorCompletedAt ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-green-700">
+                    <CheckCircle size={15} />
+                    <span className="text-sm font-semibold">Completed by contractor</span>
+                    <span className="text-xs text-gray-400">{new Date(request.contractorCompletedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                  {request.contractorCompletionNote && (
+                    <div className="bg-green-50 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-gray-500 mb-1">Completion Notes</p>
+                      <p className="text-sm text-gray-700 whitespace-pre-line">{request.contractorCompletionNote}</p>
+                    </div>
+                  )}
+                  {request.contractorCompletionPhotos.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 mb-2">Completion Photos</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {request.contractorCompletionPhotos.map((url) => (
+                          <a key={url} href={url} target="_blank" rel="noreferrer">
+                            <img src={url} alt="" className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {request.contractorReportUrl && (
+                    <a href={request.contractorReportUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm text-[#1A3D2B] underline">
+                      <Upload size={13} />View completion report
+                    </a>
+                  )}
+                </div>
+              ) : request.contractorAcceptedAt ? (
+                <div className="flex items-center gap-2 text-blue-700">
+                  <ThumbsUp size={15} />
+                  <span className="text-sm font-semibold">Accepted</span>
+                  <span className="text-xs text-gray-400">{new Date(request.contractorAcceptedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              ) : request.contractorDeclinedAt ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-red-600">
+                    <ThumbsDown size={15} />
+                    <span className="text-sm font-semibold">Declined</span>
+                    <span className="text-xs text-gray-400">{new Date(request.contractorDeclinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                  {request.contractorDeclineReason && (
+                    <p className="text-sm text-gray-600 italic">"{request.contractorDeclineReason}"</p>
+                  )}
+                </div>
+              ) : request.contractorNotifiedAt ? (
+                <div className="flex items-center gap-2 text-amber-600">
+                  <Clock size={15} />
+                  <span className="text-sm font-semibold">Awaiting response</span>
+                  <span className="text-xs text-gray-400">Sent {new Date(request.contractorNotifiedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {dispatchError && <p className="text-sm text-red-600">{dispatchError}</p>}
+                  {!request.contractor.email ? (
+                    <p className="text-sm text-amber-600">⚠ Contractor has no email address — cannot dispatch magic link.</p>
+                  ) : (
+                    <button
+                      onClick={dispatchToContractor}
+                      disabled={dispatching}
+                      className="flex items-center gap-2 bg-[#c4622d] hover:bg-[#a8501f] text-white text-sm font-medium px-4 py-2 rounded-lg transition disabled:opacity-60"
+                    >
+                      <Send size={14} />{dispatching ? 'Sending…' : 'Dispatch Magic Link'}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Re-dispatch option for notified/accepted (not completed) */}
+              {request.contractorNotifiedAt && !request.contractorCompletedAt && request.contractor.email && (
+                <button
+                  onClick={dispatchToContractor}
+                  disabled={dispatching}
+                  className="mt-3 flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition"
+                >
+                  <Send size={11} />{dispatching ? 'Sending…' : 'Resend link'}
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="space-y-3">

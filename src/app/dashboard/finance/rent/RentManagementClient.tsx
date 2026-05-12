@@ -67,6 +67,7 @@ export default function RentManagementClient({ payments, initialMonth, initialYe
     })
   }, [payments, month, year])
 
+  const unpaid = filtered.filter(p => p.status !== 'PAID' && p.status !== 'VOID')
   const totalDue = filtered.reduce((s, p) => s + p.amount, 0)
   const totalReceived = filtered.reduce((s, p) => s + p.amountPaid, 0)
   const totalOutstanding = totalDue - totalReceived
