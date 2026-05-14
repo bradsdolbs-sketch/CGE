@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
-import * as fs from 'fs'
-import * as path from 'path'
+import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,26 +9,20 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { filename: string } }
 ) {
-  // Agents + Admins can always access
-  // Landlords can access their own reports (token-less access from portal)
   const session = await getServerSession(authOptions)
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Sanitise filename — no path traversal
-  const filename = path.basename(params.filename)
-  const filePath = path.join(process.cwd(), 'uploads', 'reports', filename)
+  // Sanitise — no path traversal
+  const filename = params.filename.replace(/[^a-zA-Z0-9_.-]/g, '')
+  const storagePath = `reports/${filename}`
 
-  if (!fs.existsSync(filePath)) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  }
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
 
-  const buffer = fs.readFileSync(filePath)
-  return new NextResponse(buffer, {
-    headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `inline; filename="${filename}"`,
-    },
-  })
+  const { data } = supabase.storage.from('uploads').getPublicUrl(storagePath)
+  return NextResponse.redirect(data.publicUrl)
 }

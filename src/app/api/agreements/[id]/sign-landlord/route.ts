@@ -6,9 +6,8 @@ import { renderToBuffer, DocumentProps } from '@react-pdf/renderer'
 import React, { type ReactElement } from 'react'
 import ASTDraftPDF, { ASTData } from '@/components/pdf/ASTDraftPDF'
 import { sendEmail } from '@/lib/email'
+import { createClient } from '@supabase/supabase-js'
 import jwt from 'jsonwebtoken'
-import * as fs from 'fs'
-import * as path from 'path'
 import { addMonths, format } from 'date-fns'
 
 export const dynamic = 'force-dynamic'
@@ -180,14 +179,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   // Generate final signed PDF
   const buffer = await renderToBuffer(React.createElement(ASTDraftPDF, { data: finalASTData }) as ReactElement<DocumentProps>)
-  const uploadsDir = path.join(process.cwd(), 'uploads', 'agreements')
-  fs.mkdirSync(uploadsDir, { recursive: true })
-  const filename = `ast-${agreementRef.toLowerCase()}-signed.pdf`
-  const filePath = path.join(uploadsDir, filename)
-  fs.writeFileSync(filePath, buffer)
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? 'https://app.centralgateestates.com'
-  const finalUrl = `${baseUrl}/api/documents/agreements/${filename}`
+  // Upload to Supabase storage
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+  const filename = `ast-${agreementRef.toLowerCase()}-signed.pdf`
+  const storagePath = `agreements/${filename}`
+  const { error: uploadError } = await supabase.storage
+    .from('uploads')
+    .upload(storagePath, buffer, { contentType: 'application/pdf', upsert: true })
+  if (uploadError) throw new Error(`PDF upload failed: ${uploadError.message}`)
+
+  const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(storagePath)
+  const finalUrl = urlData.publicUrl
 
   // Save final URL
   const finalAgreement = await prisma.agreement.update({

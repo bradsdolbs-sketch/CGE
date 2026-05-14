@@ -6,8 +6,7 @@ import { renderToBuffer, DocumentProps } from '@react-pdf/renderer'
 import React, { type ReactElement } from 'react'
 import ReferenceReportPDF from '@/components/pdf/ReferenceReportPDF'
 import { sendEmail } from '@/lib/email'
-import * as fs from 'fs'
-import * as path from 'path'
+import { createClient } from '@supabase/supabase-js'
 import jwt from 'jsonwebtoken'
 
 export const dynamic = 'force-dynamic'
@@ -99,15 +98,20 @@ export async function POST(
     // Generate PDF buffer
     const buffer = await renderToBuffer(React.createElement(ReferenceReportPDF, { data: reportData }) as ReactElement<DocumentProps>)
 
-    // Save to disk
-    const uploadsDir = path.join(process.cwd(), 'uploads', 'reports')
-    fs.mkdirSync(uploadsDir, { recursive: true })
+    // Upload to Supabase storage
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
     const filename = `ref-${params.id}.pdf`
-    const filePath = path.join(uploadsDir, filename)
-    fs.writeFileSync(filePath, buffer)
+    const storagePath = `reports/${filename}`
+    const { error: uploadError } = await supabase.storage
+      .from('uploads')
+      .upload(storagePath, buffer, { contentType: 'application/pdf', upsert: true })
+    if (uploadError) throw new Error(`PDF upload failed: ${uploadError.message}`)
 
-    const baseUrl = process.env.NEXTAUTH_URL ?? 'https://app.centralgateestates.com'
-    const reportUrl = `${baseUrl}/api/documents/reports/${filename}`
+    const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(storagePath)
+    const reportUrl = urlData.publicUrl
 
     // Update application with reportUrl and UNDER_REVIEW status
     await prisma.tenantReferenceApplication.update({

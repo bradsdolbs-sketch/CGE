@@ -5,8 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { renderToBuffer, DocumentProps } from '@react-pdf/renderer'
 import React, { type ReactElement } from 'react'
 import ASTDraftPDF, { ASTData } from '@/components/pdf/ASTDraftPDF'
-import * as fs from 'fs'
-import * as path from 'path'
+import { createClient } from '@supabase/supabase-js'
 import { addMonths, format } from 'date-fns'
 
 export const dynamic = 'force-dynamic'
@@ -178,15 +177,20 @@ export async function POST(req: NextRequest) {
     // Generate PDF
     const buffer = await renderToBuffer(React.createElement(ASTDraftPDF, { data: astData }) as ReactElement<DocumentProps>)
 
-    // Save to disk
-    const uploadsDir = path.join(process.cwd(), 'uploads', 'agreements')
-    fs.mkdirSync(uploadsDir, { recursive: true })
+    // Upload to Supabase storage
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
     const filename = `ast-${agreementRef.toLowerCase()}.pdf`
-    const filePath = path.join(uploadsDir, filename)
-    fs.writeFileSync(filePath, buffer)
+    const storagePath = `agreements/${filename}`
+    const { error: uploadError } = await supabase.storage
+      .from('uploads')
+      .upload(storagePath, buffer, { contentType: 'application/pdf', upsert: true })
+    if (uploadError) throw new Error(`PDF upload failed: ${uploadError.message}`)
 
-    const baseUrl = process.env.NEXTAUTH_URL ?? 'https://app.centralgateestates.com'
-    const draftUrl = `${baseUrl}/api/documents/agreements/${filename}`
+    const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(storagePath)
+    const draftUrl = urlData.publicUrl
 
     // Create Agreement record
     const agreement = await prisma.agreement.create({

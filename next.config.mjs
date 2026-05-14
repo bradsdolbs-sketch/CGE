@@ -6,7 +6,7 @@ const nextConfig = {
       { protocol: "https", hostname: "**.supabase.co" },
     ],
   },
-  serverExternalPackages: ["@prisma/client", "bcryptjs", "@auth/prisma-adapter", "next-auth", "jsonwebtoken"],
+  serverExternalPackages: ["@prisma/client", "bcryptjs", "@auth/prisma-adapter", "next-auth", "jsonwebtoken", "@react-pdf/renderer"],
 };
 
 export default nextConfig;
