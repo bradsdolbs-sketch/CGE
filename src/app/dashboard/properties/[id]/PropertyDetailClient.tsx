@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Upload, Plus, Trash2, ChevronLeft, ChevronRight, FileImage, X, Loader2, CheckCircle, Sparkles } from 'lucide-react'
@@ -101,7 +101,44 @@ export default function PropertyDetailClient({ property, landlords }: Props) {
   const [newCompliance, setNewCompliance] = useState({ type: 'GAS_SAFETY', issueDate: '', expiryDate: '', certificateUrl: '' })
   const [addingCompliance, setAddingCompliance] = useState(false)
 
-  // Photos dropzone — upload in batches of 3 to avoid serverless concurrency limits
+  // Compress an image file using Canvas to stay under Vercel's 4.5MB body limit
+  const compressImage = useCallback((file: File, maxSizeMB = 3): Promise<File> => {
+    return new Promise((resolve) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        const canvas = document.createElement('canvas')
+        let { width, height } = img
+        // Scale down if very large
+        const MAX_DIM = 2400
+        if (width > MAX_DIM || height > MAX_DIM) {
+          const ratio = Math.min(MAX_DIM / width, MAX_DIM / height)
+          width = Math.round(width * ratio)
+          height = Math.round(height * ratio)
+        }
+        canvas.width = width
+        canvas.height = height
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+        // Try quality 0.85 first, step down until under maxSizeMB
+        const tryQuality = (q: number) => {
+          canvas.toBlob((blob) => {
+            if (!blob) { resolve(file); return }
+            if (blob.size <= maxSizeMB * 1024 * 1024 || q <= 0.4) {
+              resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
+            } else {
+              tryQuality(Math.round((q - 0.1) * 10) / 10)
+            }
+          }, 'image/jpeg', q)
+        }
+        tryQuality(0.85)
+      }
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+      img.src = url
+    })
+  }, [])
+
+  // Photos dropzone — compress then upload in batches of 3
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { 'image/*': [] },
     onDrop: async (files) => {
@@ -113,13 +150,18 @@ export default function PropertyDetailClient({ property, landlords }: Props) {
         const batch = files.slice(i, i + BATCH)
         const batchResults = await Promise.all(
           batch.map(async (file) => {
-            const fd = new FormData()
-            fd.append('file', file)
-            fd.append('subdir', 'properties')
-            const res = await fetch('/api/upload', { method: 'POST', body: fd })
-            setUploadProgress((prev) => prev ? { ...prev, done: prev.done + 1 } : null)
-            if (res.ok) { const d = await res.json(); return d.url as string }
-            return null
+            try {
+              const compressed = await compressImage(file)
+              const fd = new FormData()
+              fd.append('file', compressed)
+              fd.append('subdir', 'properties')
+              const res = await fetch('/api/upload', { method: 'POST', body: fd })
+              setUploadProgress((prev) => prev ? { ...prev, done: prev.done + 1 } : null)
+              if (res.ok) { const d = await res.json(); return d.url as string }
+              return null
+            } catch {
+              return null
+            }
           })
         )
         allResults.push(...(batchResults.filter(Boolean) as string[]))
