@@ -7,7 +7,7 @@ import { signOut } from 'next-auth/react'
 import {
   LayoutDashboard, Building2, ListChecks, ShieldCheck,
   Users, UserCog, UserSearch, FileText, RotateCcw,
-  Banknote, Receipt, DollarSign,
+  Banknote, Receipt, DollarSign, CreditCard,
   Wrench, ClipboardList, HardHat,
   Mail, Bell, Menu, X, ChevronDown, LogOut, Settings, ClipboardCheck, Sparkles,
 } from 'lucide-react'
@@ -55,6 +55,7 @@ const navSections = [
       { label: 'Rent', href: '/dashboard/finance/rent', icon: Banknote },
       { label: 'Statements', href: '/dashboard/finance/statements', icon: Receipt },
       { label: 'Fees', href: '/dashboard/finance/fees', icon: DollarSign },
+      { label: 'Payments', href: '/dashboard/payments', icon: CreditCard },
     ],
   },
   {

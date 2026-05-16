@@ -650,6 +650,81 @@ export async function sendReferencingCompleteEmail(
   })
 }
 
+// ─── Instant Bank Pay — Payment Request (to tenant) ──────────────────────────
+
+export async function sendPaymentRequestEmail(
+  tenantEmail: string,
+  tenantName: string,
+  description: string,
+  amountPence: number,
+  reference: string,
+  paymentUrl: string,
+  expiresAt: Date,
+): Promise<void> {
+  const amount = formatCurrency(amountPence)
+  const expiry = formatDateTime(expiresAt)
+
+  const html = wrapEmail(`
+    <h1>Payment Request</h1>
+    <p>Dear ${tenantName},</p>
+    <p>Central Gate Estates has sent you a payment request. You can pay securely via open banking — no card details required.</p>
+    <div class="alert-box">
+      <div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">${description}</span></div>
+      <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value" style="font-weight:700;font-size:18px;">${amount}</span></div>
+      <div class="detail-row"><span class="detail-label">Reference</span><span class="detail-value">${reference}</span></div>
+      <div class="detail-row"><span class="detail-label">Expires</span><span class="detail-value">${expiry}</span></div>
+    </div>
+    <p>Click the button below to authorise payment from your bank account instantly. The link expires in 24 hours.</p>
+    <p style="margin:24px 0;">
+      <a href="${paymentUrl}" class="btn" style="background:#c4622d;">Pay Now — ${amount} &rarr;</a>
+    </p>
+    <p style="font-size:13px;color:#737373;">This uses GoCardless open banking (Instant Bank Pay). Your funds are transferred securely with no card fees.</p>
+    <p style="font-size:13px;color:#737373;">If you have any questions, contact us at <a href="mailto:hello@centralgateestates.com">hello@centralgateestates.com</a></p>
+  `, `Payment request for ${amount} — ${description}`)
+
+  await sendEmail({
+    to: tenantEmail,
+    subject: `Payment request: ${amount} — ${description} (${reference})`,
+    html,
+  })
+}
+
+// ─── Instant Bank Pay — Receipt (to tenant) ───────────────────────────────────
+
+export async function sendPaymentReceiptEmail(
+  tenantEmail: string,
+  tenantName: string,
+  description: string,
+  amountPence: number,
+  reference: string,
+  paidAt: Date,
+): Promise<void> {
+  const amount = formatCurrency(amountPence)
+  const paidDate = formatDateTime(paidAt)
+
+  const html = wrapEmail(`
+    <h1>Payment Receipt</h1>
+    <p>Dear ${tenantName},</p>
+    <p>Thank you &mdash; your payment has been received and confirmed. Please keep this email as your receipt.</p>
+    <div class="alert-box" style="border-left-color:#28a745;">
+      <div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">${description}</span></div>
+      <div class="detail-row"><span class="detail-label">Amount Paid</span><span class="detail-value" style="font-weight:700;font-size:18px;color:#28a745;">${amount}</span></div>
+      <div class="detail-row"><span class="detail-label">Reference</span><span class="detail-value">${reference}</span></div>
+      <div class="detail-row"><span class="detail-label">Paid On</span><span class="detail-value">${paidDate}</span></div>
+    </div>
+    <p>Funds typically arrive within a few hours via open banking. If you have any questions, don&apos;t hesitate to get in touch.</p>
+    <p style="margin:24px 0;">
+      <a href="${process.env.NEXTAUTH_URL ?? 'https://portal.centralgateestates.com'}/portal/tenant/payments" class="btn">View Payment History &rarr;</a>
+    </p>
+  `, `Payment confirmed — ${amount} received`)
+
+  await sendEmail({
+    to: tenantEmail,
+    subject: `Payment receipt: ${amount} — ${reference}`,
+    html,
+  })
+}
+
 // ─── Guarantor Invite ─────────────────────────────────────────────────────────
 
 export async function sendGuarantorInviteEmail(

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sendPaymentReceiptEmail } from '@/lib/email'
 import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
@@ -61,11 +62,12 @@ export async function POST(req: NextRequest) {
 
 interface GCEvent {
   id: string
-  resource_type: 'payments' | 'mandates' | 'refunds' | 'subscriptions' | 'payout_items' | 'payouts'
+  resource_type: 'payments' | 'mandates' | 'billing_requests' | 'refunds' | 'subscriptions' | 'payout_items' | 'payouts'
   action: string
   links: {
     payment?: string
     mandate?: string
+    billing_request?: string
   }
   details?: {
     cause?: string
@@ -84,6 +86,9 @@ async function handleEvent(event: GCEvent) {
     case 'mandates':
       await handleMandateEvent(event)
       break
+    case 'billing_requests':
+      await handleBillingRequestEvent(event)
+      break
     default:
       // Unhandled resource type — ignore silently
       break
@@ -94,12 +99,17 @@ async function handlePaymentEvent(event: GCEvent) {
   const gcPaymentId = event.links.payment
   if (!gcPaymentId) return
 
+  // Always check PaymentRequest (IBP) for confirmed events, regardless of RentPayment
+  if (event.action === 'confirmed') {
+    await handleIBPPaymentConfirmed(gcPaymentId)
+  }
+
   const rentPayment = await prisma.rentPayment.findFirst({
     where: { gcPaymentId },
   })
 
   if (!rentPayment) {
-    console.warn(`[GC webhook] No RentPayment found for gcPaymentId ${gcPaymentId}`)
+    // May be an IBP-only payment — handled above
     return
   }
 
@@ -175,6 +185,85 @@ async function handlePaymentEvent(event: GCEvent) {
       break
   }
 }
+
+// ─── Billing Request (Instant Bank Pay) ──────────────────────────────────────
+
+async function handleBillingRequestEvent(event: GCEvent) {
+  if (event.action !== 'fulfilled') return
+
+  const gcBillingRequestId = event.links.billing_request
+  if (!gcBillingRequestId) return
+
+  const pr = await prisma.paymentRequest.findFirst({
+    where: { gcBillingRequestId },
+    include: { tenant: { include: { user: true } } },
+  })
+
+  if (!pr) {
+    console.warn(`[GC webhook] No PaymentRequest found for gcBillingRequestId ${gcBillingRequestId}`)
+    return
+  }
+
+  await prisma.paymentRequest.update({
+    where: { id: pr.id },
+    data: {
+      status: 'AUTHORISED',
+      gcPaymentId: event.links.payment ?? null,
+    },
+  })
+
+  // Notify all admin/agent users
+  const agents = await prisma.user.findMany({
+    where: { role: { in: ['ADMIN', 'AGENT'] }, active: true },
+    select: { id: true },
+  })
+  if (agents.length > 0) {
+    const tenantName = pr.tenant ? `${pr.tenant.firstName} ${pr.tenant.lastName}` : 'A tenant'
+    await prisma.notification.createMany({
+      data: agents.map((a) => ({
+        userId: a.id,
+        type: 'GENERAL' as const,
+        title: 'Payment authorised',
+        message: `${tenantName} authorised payment of £${(pr.amount / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })} — ${pr.description} (${pr.reference})`,
+        link: '/dashboard/payments',
+      })),
+    })
+  }
+}
+
+async function handleIBPPaymentConfirmed(gcPaymentId: string) {
+  const pr = await prisma.paymentRequest.findFirst({
+    where: { gcPaymentId },
+    include: { tenant: { include: { user: true } } },
+  })
+
+  if (!pr) return // Not an IBP payment — handled elsewhere
+
+  if (pr.status === 'PAID') return // Already processed
+
+  await prisma.paymentRequest.update({
+    where: { id: pr.id },
+    data: { status: 'PAID', paidAt: new Date() },
+  })
+
+  // Send receipt email to tenant
+  if (pr.tenant?.user?.email) {
+    try {
+      await sendPaymentReceiptEmail(
+        pr.tenant.user.email,
+        `${pr.tenant.firstName} ${pr.tenant.lastName}`,
+        pr.description,
+        pr.amount,
+        pr.reference,
+        new Date(),
+      )
+    } catch (err) {
+      console.error('[GC webhook] Failed to send IBP receipt email:', err)
+    }
+  }
+}
+
+// ─── Mandates ─────────────────────────────────────────────────────────────────
 
 async function handleMandateEvent(event: GCEvent) {
   const gcMandateId = event.links.mandate

@@ -232,6 +232,7 @@ model Tenant {
   notesList  Note[]     @relation("TenantNotes")
   rightToRentChecks     RightToRentCheck[]
   referenceApplications TenantReferenceApplication[]
+  paymentRequests       PaymentRequest[]
 
   @@map("tenants")
 }
@@ -307,6 +308,7 @@ model Tenancy {
   documents    Document[]      @relation("TenancyDocuments")
   notesList    Note[]          @relation("TenancyNotes")
   agreements   Agreement[]
+  paymentRequests PaymentRequest[]
 
   @@map("tenancies")
 }
@@ -397,6 +399,53 @@ model RentPayment {
   fees    Fee[]
 
   @@map("rent_payments")
+}
+
+// ─── INSTANT BANK PAY ────────────────────────────────────────────────────────
+
+enum PaymentRequestStatus {
+  PENDING
+  AUTHORISED
+  PAID
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentRequestType {
+  HOLDING_DEPOSIT
+  SECURITY_DEPOSIT
+  ADMIN_FEE
+  REFERENCE_FEE
+  FIRST_MONTHS_RENT
+  ONE_OFF
+}
+
+model PaymentRequest {
+  id          String               @id @default(cuid())
+  tenantId    String?
+  tenancyId   String?
+  amount      Int                  // pence
+  description String
+  type        PaymentRequestType   @default(ONE_OFF)
+  status      PaymentRequestStatus @default(PENDING)
+  reference   String               @unique // e.g. CGE-2026-00142
+
+  // GoCardless Instant Bank Pay
+  gcBillingRequestId     String?
+  gcBillingRequestFlowId String?
+  gcPaymentId            String?
+  paymentUrl             String?   // GC hosted authorisation URL
+
+  expiresAt   DateTime?
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant  Tenant?  @relation(fields: [tenantId], references: [id])
+  tenancy Tenancy? @relation(fields: [tenancyId], references: [id])
+
+  @@map("payment_requests")
 }
 
 model LandlordStatement {

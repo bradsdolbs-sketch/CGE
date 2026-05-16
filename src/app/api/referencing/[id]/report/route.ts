@@ -123,6 +123,8 @@ export async function POST(
       },
     })
 
+    const baseUrl = process.env.NEXTAUTH_URL ?? 'https://app.centralgateestates.com'
+
     // Email all agents
     const agents = await prisma.user.findMany({
       where: { role: { in: ['ADMIN', 'AGENT'] }, active: true },
