@@ -23,13 +23,39 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   try {
     const body = await req.json()
-    const { price, ...rest } = body
+    const {
+      price, description, shortDescription, furnished, billsIncluded, parking,
+      garden, balcony, petsAllowed, dssConsidered, studentFriendly, features,
+      photos, primaryPhoto, floorplan, virtualTourUrl, availableFrom,
+      priceFrequency, publishRightmove, publishZoopla,
+    } = body
+
+    const parsedPrice = price !== undefined ? parseInt(price) : undefined
 
     const listing = await prisma.listing.update({
       where: { id: params.id },
       data: {
-        ...(price !== undefined && { price: parseInt(price) }),
-        ...rest,
+        ...(parsedPrice !== undefined && !isNaN(parsedPrice) && { price: parsedPrice }),
+        ...(description !== undefined && { description }),
+        ...(shortDescription !== undefined && { shortDescription: shortDescription || null }),
+        ...(furnished !== undefined && { furnished }),
+        ...(billsIncluded !== undefined && { billsIncluded }),
+        ...(parking !== undefined && { parking }),
+        ...(garden !== undefined && { garden }),
+        ...(balcony !== undefined && { balcony }),
+        ...(petsAllowed !== undefined && { petsAllowed }),
+        ...(dssConsidered !== undefined && { dssConsidered }),
+        ...(studentFriendly !== undefined && { studentFriendly }),
+        ...(features !== undefined && { features }),
+        ...(photos !== undefined && { photos }),
+        ...(primaryPhoto !== undefined && { primaryPhoto: primaryPhoto || null }),
+        ...(floorplan !== undefined && { floorplan: floorplan || null }),
+        ...(virtualTourUrl !== undefined && { virtualTourUrl: virtualTourUrl || null }),
+        // availableFrom: empty string must become null
+        ...(availableFrom !== undefined && { availableFrom: availableFrom ? new Date(availableFrom) : null }),
+        ...(priceFrequency !== undefined && { priceFrequency }),
+        ...(publishRightmove !== undefined && { publishRightmove }),
+        ...(publishZoopla !== undefined && { publishZoopla }),
       },
     })
 

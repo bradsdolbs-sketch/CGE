@@ -26,7 +26,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { propertyId, price, description, ...rest } = body
+    const {
+      propertyId, price, description, shortDescription, furnished, billsIncluded,
+      parking, garden, balcony, petsAllowed, dssConsidered, studentFriendly,
+      features, photos, primaryPhoto, floorplan, virtualTourUrl, availableFrom,
+      priceFrequency, publishRightmove, publishZoopla,
+    } = body
 
     if (!propertyId) {
       return NextResponse.json({ error: 'Missing propertyId' }, { status: 400 })
@@ -37,7 +42,24 @@ export async function POST(req: NextRequest) {
         propertyId,
         price: price ? parseInt(price) : 0,
         description: description ?? '',
-        ...rest,
+        ...(shortDescription && { shortDescription }),
+        ...(furnished !== undefined && { furnished }),
+        ...(billsIncluded !== undefined && { billsIncluded }),
+        ...(parking !== undefined && { parking }),
+        ...(garden !== undefined && { garden }),
+        ...(balcony !== undefined && { balcony }),
+        ...(petsAllowed !== undefined && { petsAllowed }),
+        ...(dssConsidered !== undefined && { dssConsidered }),
+        ...(studentFriendly !== undefined && { studentFriendly }),
+        ...(features !== undefined && { features }),
+        ...(photos !== undefined && { photos }),
+        ...(primaryPhoto && { primaryPhoto }),
+        ...(floorplan && { floorplan }),
+        ...(virtualTourUrl && { virtualTourUrl }),
+        ...(availableFrom && { availableFrom: new Date(availableFrom) }),
+        ...(priceFrequency && { priceFrequency }),
+        ...(publishRightmove !== undefined && { publishRightmove }),
+        ...(publishZoopla !== undefined && { publishZoopla }),
       },
     })
 
