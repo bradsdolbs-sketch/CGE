@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Home, Building2, HardHat } from 'lucide-react'
+import LogoCGE from '@/components/LogoCGE'
 
 const PORTALS = [
   {
@@ -72,10 +73,9 @@ function LoginContent() {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#F0EBE0' }}>
       {/* Header */}
-      <div className="bg-[#1e2420] px-6 py-4 flex items-center gap-3">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-white font-bold text-lg" style={{ fontFamily: 'var(--font-syne)', borderBottom: '2px solid #5db07a', paddingBottom: '1px' }}>CGE</span>
-          <span className="text-white/50 text-sm" style={{ fontFamily: 'var(--font-dm-sans)', letterSpacing: '0.15em', textTransform: 'uppercase', fontSize: '10px' }}>Central Gate Estates</span>
+      <div className="bg-[#1e2420] px-6 py-3.5 flex items-center gap-3">
+        <Link href="/">
+          <LogoCGE variant="horizontal" size="sm" onDark />
         </Link>
       </div>
 

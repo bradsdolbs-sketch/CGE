@@ -8,6 +8,7 @@ import {
   Home, Building2, FileText, Wrench, FolderOpen, User, LogOut, Menu, X, ClipboardCheck, PenLine,
   PoundSterling, ShieldCheck, Calendar, BarChart2, Eye, MessageSquare, MoreHorizontal,
 } from 'lucide-react'
+import LogoCGE from '@/components/LogoCGE'
 
 interface Props {
   user: { name: string; email: string }
@@ -60,9 +61,9 @@ export default function LandlordPortalShell({ user, children }: Props) {
         >
           <Menu size={20} />
         </button>
-        <Link href="/portal/landlord" className="flex items-center gap-2 flex-1">
-          <span className="font-bold text-base" style={{ fontFamily: 'Syne, sans-serif' }}>CGE</span>
-          <span className="text-[#1A3D2B] font-bold text-base" style={{ fontFamily: 'Syne, sans-serif' }}>
+        <Link href="/portal/landlord" className="flex items-center gap-2.5 flex-1">
+          <LogoCGE size="xs" variant="mark" />
+          <span className="font-bold text-sm text-white/90" style={{ fontFamily: 'Syne, sans-serif' }}>
             Landlord Portal
           </span>
         </Link>

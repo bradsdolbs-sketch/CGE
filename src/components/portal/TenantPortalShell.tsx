@@ -7,6 +7,7 @@ import { signOut } from 'next-auth/react'
 import {
   Home, Wrench, FileText, CreditCard, User, LogOut, Menu, X, ClipboardCheck, PenLine,
 } from 'lucide-react'
+import LogoCGE from '@/components/LogoCGE'
 
 interface Props {
   user: { name: string; email: string }
@@ -45,11 +46,9 @@ export default function TenantPortalShell({ user, openMaintenanceCount, children
         >
           <Menu size={20} />
         </button>
-        <Link href="/portal/tenant" className="flex items-center gap-2 flex-1">
-          <span className="font-bold text-base" style={{ fontFamily: 'Syne, sans-serif' }}>
-            CGE
-          </span>
-          <span className="text-[#1A3D2B] font-bold text-base" style={{ fontFamily: 'Syne, sans-serif' }}>
+        <Link href="/portal/tenant" className="flex items-center gap-2.5 flex-1">
+          <LogoCGE size="xs" variant="mark" />
+          <span className="font-bold text-sm text-white/90" style={{ fontFamily: 'Syne, sans-serif' }}>
             Tenant Portal
           </span>
         </Link>

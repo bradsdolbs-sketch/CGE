@@ -11,12 +11,6 @@ export const metadata: Metadata = {
     'A showcase of properties let by Central Gate Estates across East London — Shoreditch, Hackney, Bethnal Green, Hoxton and beyond.',
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  LET:         'LET',
-  LET_AGREED:  'LET AGREED',
-  OFF_MARKET:  'OFF MARKET',
-  UNDER_OFFER: 'UNDER OFFER',
-}
 
 async function getPortfolioProperties(): Promise<PropertyWithListing[]> {
   const properties = await prisma.property.findMany({
@@ -133,9 +127,6 @@ export default async function PortfolioPage() {
                 <PropertyCard
                   key={property.id}
                   property={property}
-                  variant="standard"
-                  badge={STATUS_LABEL[property.status] ?? property.status.replace(/_/g, ' ')}
-                  badgeDark
                 />
               ))}
             </div>

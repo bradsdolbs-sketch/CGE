@@ -692,7 +692,7 @@ export default async function PropertyDetailPage({ params }: Props) {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {similar.map((p) => (
-                <PropertyCard key={p.id} property={p} variant="standard" />
+                <PropertyCard key={p.id} property={p} />
               ))}
             </div>
           </section>

@@ -24,6 +24,12 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXTAUTH_URL ?? 'https://centralgateestates.com'),
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/cge-logo.svg',
+  },
   title: {
     default: 'Central Gate Estates | East London Living, Done Right',
     template: '%s | Central Gate Estates',

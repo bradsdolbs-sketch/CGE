@@ -521,14 +521,14 @@ function ListingsSection({ properties, loading }: { properties: PropertyWithList
           <>
             {featured && (
               <CurtainReveal className="mb-6">
-                <PropertyCard property={featured} variant="featured" />
+                <PropertyCard property={featured} wide />
               </CurtainReveal>
             )}
 
             {standards.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 {standards.map((p) => (
-                  <PropertyCard key={p.id} property={p} variant="standard" />
+                  <PropertyCard key={p.id} property={p} />
                 ))}
               </div>
             )}

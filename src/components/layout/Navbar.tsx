@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { clsx } from 'clsx'
 import { Menu, X, ChevronDown, LogOut, LayoutDashboard, User } from 'lucide-react'
+import LogoCGE from '@/components/LogoCGE'
 
 // ─── Nav links ────────────────────────────────────────────────────────────────
 
@@ -69,36 +70,12 @@ export default function Navbar() {
         <div className="max-w-[1200px] mx-auto px-6 h-full flex items-center">
 
           {/* Logo */}
-          <Link href="/" className="flex-shrink-0 flex flex-col leading-none mr-8">
-            <span
-              style={{
-                fontFamily: 'var(--font-dm-sans)',
-                fontWeight: 700,
-                fontSize: '17px',
-                letterSpacing: '-0.02em',
-                color: scrolled || mobileOpen ? '#111' : '#f5f2ee',
-                borderBottom: '2px solid #1A3D2B',
-                paddingBottom: '1px',
-                lineHeight: 1,
-                transition: 'color 0.2s',
-              }}
-            >
-              CGE
-            </span>
-            <span
-              style={{
-                fontFamily: 'var(--font-dm-sans)',
-                fontWeight: 400,
-                fontSize: '9px',
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-                color: scrolled || mobileOpen ? 'rgba(17,17,17,0.45)' : 'rgba(245,242,238,0.45)',
-                marginTop: '3px',
-                transition: 'color 0.2s',
-              }}
-            >
-              Central Gate Estates
-            </span>
+          <Link href="/" className="flex-shrink-0 mr-8">
+            <LogoCGE
+              variant="mark"
+              size="sm"
+              className="transition-opacity duration-200 hover:opacity-90"
+            />
           </Link>
 
           {/* Nav — centred (hidden on mobile) */}

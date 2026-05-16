@@ -356,10 +356,14 @@ export default async function PropertiesPage({
               <SortDropdown current={sort} searchParams={searchParams} />
             </div>
 
-            {/* Grid — 3-col desktop, 2-col tablet, 1-col mobile */}
+            {/* Grid — first card wide on desktop, then regular 3-col */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {properties.map((property) => (
-                <PropertyCard key={property.id} property={property} variant="standard" />
+              {properties.map((property, i) => (
+                <PropertyCard
+                  key={property.id}
+                  property={property}
+                  wide={i === 0}
+                />
               ))}
             </div>
 

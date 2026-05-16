@@ -4,6 +4,8 @@ import { useState, createContext, useContext } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
+import LogoCGE from '@/components/LogoCGE'
+import CommandPalette from '@/components/CommandPalette'
 import {
   LayoutDashboard, Building2, ListChecks, ShieldCheck,
   Users, UserCog, UserSearch, FileText, RotateCcw,
@@ -120,9 +122,7 @@ export default function DashboardShell({ user, children, unreadNotifications = 0
           {/* Logo */}
           <div className="px-5 py-5 border-b border-white/10 flex-shrink-0">
             <Link href="/dashboard" className="block">
-              <span className="text-white font-bold text-base leading-tight">Central Gate</span>
-              <span className="block text-[#1A3D2B] font-bold text-base leading-tight">Estates</span>
-              <span className="block w-8 h-0.5 bg-[#1A3D2B] mt-2" />
+              <LogoCGE variant="horizontal" size="sm" onDark />
             </Link>
             <button
               className="absolute top-4 right-4 text-white/60 hover:text-white lg:hidden"
@@ -199,14 +199,8 @@ export default function DashboardShell({ user, children, unreadNotifications = 0
 
             <h1 className="font-semibold text-[#1a1a1a] text-base flex-1 truncate">{title}</h1>
 
-            {/* Search */}
-            <div className="hidden md:flex items-center">
-              <input
-                type="search"
-                placeholder="Search…"
-                className="w-56 text-sm px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A3D2B] focus:border-transparent"
-              />
-            </div>
+            {/* Command palette trigger */}
+            <CommandPalette />
 
             {/* Notification bell */}
             <Link href="/dashboard/notifications" className="relative text-gray-500 hover:text-[#1a1a1a] transition">

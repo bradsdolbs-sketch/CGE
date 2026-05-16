@@ -402,6 +402,33 @@
   }
 }
 
+/* ─── Keyframe animations ──────────────────────────────────────────────────── */
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)     scale(1);    }
+}
+
+/* ─── Command palette ──────────────────────────────────────────────────────── */
+
+.cmd-backdrop {
+  animation: fadeIn 0.1s ease;
+}
+
+.cmd-panel {
+  animation: slideDown 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 /* ─── Leaflet Map Override ─────────────────────────────────────────────────── */
 
 .leaflet-container {
