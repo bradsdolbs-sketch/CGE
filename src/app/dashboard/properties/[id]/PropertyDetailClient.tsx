@@ -154,7 +154,7 @@ export default function PropertyDetailClient({ property, landlords }: Props) {
       })
       if (!res.ok) throw new Error((await res.json()).error)
       setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
+      setTimeout(() => { setSuccess(false); router.refresh() }, 2000)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save')
     } finally {
