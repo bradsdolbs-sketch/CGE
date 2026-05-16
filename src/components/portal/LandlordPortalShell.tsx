@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import {
   Home, Building2, FileText, Wrench, FolderOpen, User, LogOut, Menu, X, ClipboardCheck, PenLine,
+  PoundSterling, ShieldCheck,
 } from 'lucide-react'
 
 interface Props {
@@ -16,6 +17,8 @@ interface Props {
 const navItems = [
   { label: 'Overview', href: '/portal/landlord', icon: Home, exact: true },
   { label: 'My Properties', href: '/portal/landlord/properties', icon: Building2 },
+  { label: 'Rent', href: '/portal/landlord/rent', icon: PoundSterling },
+  { label: 'Compliance', href: '/portal/landlord/compliance', icon: ShieldCheck },
   { label: 'Statements', href: '/portal/landlord/statements', icon: FileText },
   { label: 'Maintenance', href: '/portal/landlord/maintenance', icon: Wrench },
   { label: 'Documents', href: '/portal/landlord/documents', icon: FolderOpen },
