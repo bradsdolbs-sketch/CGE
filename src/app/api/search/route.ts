@@ -33,10 +33,15 @@ export async function GET(req: NextRequest) {
         OR: [
           { firstName: search },
           { lastName: search },
-          { email: search },
+          { user: { email: search } },
         ],
       },
-      select: { id: true, firstName: true, lastName: true, email: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        user: { select: { email: true } },
+      },
       take: 5,
     }),
     prisma.landlord.findMany({
@@ -70,7 +75,7 @@ export async function GET(req: NextRequest) {
       tenants: tenants.map(t => ({
         id: t.id,
         label: `${t.firstName} ${t.lastName}`,
-        sublabel: t.email,
+        sublabel: t.user.email,
         href: `/dashboard/tenants/${t.id}`,
         type: 'tenant',
       })),
