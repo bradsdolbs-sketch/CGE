@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import {
   Home, Building2, FileText, Wrench, FolderOpen, User, LogOut, Menu, X, ClipboardCheck, PenLine,
-  PoundSterling, ShieldCheck,
+  PoundSterling, ShieldCheck, Calendar, BarChart2, Eye, MessageSquare, MoreHorizontal,
 } from 'lucide-react'
 
 interface Props {
@@ -15,16 +15,28 @@ interface Props {
 }
 
 const navItems = [
-  { label: 'Overview', href: '/portal/landlord', icon: Home, exact: true },
-  { label: 'My Properties', href: '/portal/landlord/properties', icon: Building2 },
-  { label: 'Rent', href: '/portal/landlord/rent', icon: PoundSterling },
-  { label: 'Compliance', href: '/portal/landlord/compliance', icon: ShieldCheck },
-  { label: 'Statements', href: '/portal/landlord/statements', icon: FileText },
+  { label: 'Overview',      href: '/portal/landlord',              icon: Home,          exact: true },
+  { label: 'My Properties', href: '/portal/landlord/properties',   icon: Building2 },
+  { label: 'Rent',          href: '/portal/landlord/rent',         icon: PoundSterling },
+  { label: 'Compliance',    href: '/portal/landlord/compliance',   icon: ShieldCheck },
+  { label: 'Inspections',   href: '/portal/landlord/inspections',  icon: Calendar },
+  { label: 'Financials',    href: '/portal/landlord/financials',   icon: BarChart2 },
+  { label: 'Viewings',      href: '/portal/landlord/viewings',     icon: Eye },
+  { label: 'Maintenance',   href: '/portal/landlord/maintenance',  icon: Wrench },
+  { label: 'Statements',    href: '/portal/landlord/statements',   icon: FileText },
+  { label: 'Documents',     href: '/portal/landlord/documents',    icon: FolderOpen },
+  { label: 'References',    href: '/portal/landlord/referencing',  icon: ClipboardCheck },
+  { label: 'Agreements',    href: '/portal/landlord/agreement',    icon: PenLine },
+  { label: 'Contact',       href: '/portal/landlord/contact',      icon: MessageSquare },
+  { label: 'Profile',       href: '/portal/landlord/profile',      icon: User },
+]
+
+// 4 key items shown in mobile bottom bar — rest accessible via sidebar "More"
+const mobileBottomItems = [
+  { label: 'Overview',    href: '/portal/landlord',             icon: Home,          exact: true },
+  { label: 'Properties',  href: '/portal/landlord/properties',  icon: Building2 },
+  { label: 'Rent',        href: '/portal/landlord/rent',        icon: PoundSterling },
   { label: 'Maintenance', href: '/portal/landlord/maintenance', icon: Wrench },
-  { label: 'Documents', href: '/portal/landlord/documents', icon: FolderOpen },
-  { label: 'References', href: '/portal/landlord/referencing', icon: ClipboardCheck },
-  { label: 'Agreements', href: '/portal/landlord/agreement', icon: PenLine },
-  { label: 'Profile', href: '/portal/landlord/profile', icon: User },
 ]
 
 export default function LandlordPortalShell({ user, children }: Props) {
@@ -73,7 +85,7 @@ export default function LandlordPortalShell({ user, children }: Props) {
 
         {/* Sidebar */}
         <aside
-          className={`fixed top-14 bottom-0 left-0 z-50 w-[200px] bg-[#1a1a1a] flex flex-col transform transition-transform duration-200 lg:relative lg:top-0 lg:translate-x-0 lg:h-[calc(100vh-3.5rem)] lg:sticky lg:top-14 ${
+          className={`fixed top-14 bottom-0 left-0 z-50 w-[200px] bg-[#1a1a1a] flex flex-col transform transition-transform duration-200 lg:relative lg:top-0 lg:translate-x-0 lg:h-[calc(100vh-3.5rem)] lg:sticky lg:top-14 overflow-y-auto ${
             mobileOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
@@ -108,14 +120,14 @@ export default function LandlordPortalShell({ user, children }: Props) {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 p-8 min-w-0 max-w-5xl">
+        <main className="flex-1 p-6 lg:p-8 min-w-0 max-w-5xl pb-24 lg:pb-8">
           {children}
         </main>
       </div>
 
-      {/* Mobile bottom nav */}
+      {/* Mobile bottom nav — 4 key items + More */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#1a1a1a] border-t border-white/10 flex lg:hidden z-30">
-        {navItems.map((item) => {
+        {mobileBottomItems.map((item) => {
           const Icon = item.icon
           const active = isActive(item.href, item.exact)
           return (
@@ -127,10 +139,17 @@ export default function LandlordPortalShell({ user, children }: Props) {
               }`}
             >
               <Icon size={18} />
-              {item.label.split(' ')[0]}
+              {item.label}
             </Link>
           )
         })}
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="flex-1 flex flex-col items-center gap-1 py-2 text-[10px] text-white/50 hover:text-white transition"
+        >
+          <MoreHorizontal size={18} />
+          More
+        </button>
       </nav>
     </div>
   )
