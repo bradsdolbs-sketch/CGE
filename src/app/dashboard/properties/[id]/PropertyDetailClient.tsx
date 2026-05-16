@@ -101,25 +101,30 @@ export default function PropertyDetailClient({ property, landlords }: Props) {
   const [newCompliance, setNewCompliance] = useState({ type: 'GAS_SAFETY', issueDate: '', expiryDate: '', certificateUrl: '' })
   const [addingCompliance, setAddingCompliance] = useState(false)
 
-  // Photos dropzone — unlimited files, parallel upload
+  // Photos dropzone — upload in batches of 3 to avoid serverless concurrency limits
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { 'image/*': [] },
     onDrop: async (files) => {
       if (!files.length) return
       setUploadProgress({ done: 0, total: files.length })
-      const results = await Promise.all(
-        files.map(async (file) => {
-          const fd = new FormData()
-          fd.append('file', file)
-          fd.append('subdir', 'properties')
-          const res = await fetch('/api/upload', { method: 'POST', body: fd })
-          setUploadProgress((prev) => prev ? { ...prev, done: prev.done + 1 } : null)
-          if (res.ok) { const d = await res.json(); return d.url as string }
-          return null
-        })
-      )
-      const uploaded = results.filter(Boolean) as string[]
-      setPhotos((prev) => [...prev, ...uploaded])
+      const allResults: string[] = []
+      const BATCH = 3
+      for (let i = 0; i < files.length; i += BATCH) {
+        const batch = files.slice(i, i + BATCH)
+        const batchResults = await Promise.all(
+          batch.map(async (file) => {
+            const fd = new FormData()
+            fd.append('file', file)
+            fd.append('subdir', 'properties')
+            const res = await fetch('/api/upload', { method: 'POST', body: fd })
+            setUploadProgress((prev) => prev ? { ...prev, done: prev.done + 1 } : null)
+            if (res.ok) { const d = await res.json(); return d.url as string }
+            return null
+          })
+        )
+        allResults.push(...(batchResults.filter(Boolean) as string[]))
+      }
+      setPhotos((prev) => [...prev, ...allResults])
       setUploadProgress(null)
       // Scroll back to the top of the Photos tab so the new photos are visible
       photosTabRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
