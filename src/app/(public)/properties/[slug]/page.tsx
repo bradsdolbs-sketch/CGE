@@ -186,7 +186,9 @@ export default async function PropertyDetailPage({ params }: Props) {
 
   const agent = AGENTS[0] // Bradley handles all viewings and lettings enquiries
 
-  const isAvailableNow = listing?.availableFrom
+  const isLet = ['LET', 'LET_AGREED'].includes(property.status)
+  const isUnderOffer = property.status === 'UNDER_OFFER'
+  const isAvailableNow = !isLet && !isUnderOffer && listing?.availableFrom
     ? new Date(listing.availableFrom) <= new Date()
     : false
 
@@ -276,7 +278,27 @@ export default async function PropertyDetailPage({ params }: Props) {
                 </div>
 
                 {/* Availability badge */}
-                {listing?.availableFrom && (
+                {isLet ? (
+                  <div
+                    className="flex items-center gap-2 px-4 py-2"
+                    style={{ border: '1px solid #e8e4de', borderRadius: '2px', background: 'rgba(220,38,38,0.06)' }}
+                  >
+                    <span className="w-2 h-2 rounded-full" style={{ background: '#dc2626' }} />
+                    <span style={{ fontFamily: 'var(--font-dm-sans)', fontWeight: 500, fontSize: '13px', color: '#dc2626' }}>
+                      {property.status === 'LET_AGREED' ? 'Let Agreed' : 'Let'}
+                    </span>
+                  </div>
+                ) : isUnderOffer ? (
+                  <div
+                    className="flex items-center gap-2 px-4 py-2"
+                    style={{ border: '1px solid #e8e4de', borderRadius: '2px', background: 'rgba(245,158,11,0.08)' }}
+                  >
+                    <span className="w-2 h-2 rounded-full" style={{ background: '#f59e0b' }} />
+                    <span style={{ fontFamily: 'var(--font-dm-sans)', fontWeight: 500, fontSize: '13px', color: '#8a7968' }}>
+                      Under Offer
+                    </span>
+                  </div>
+                ) : listing?.availableFrom ? (
                   <div
                     className="flex items-center gap-2 px-4 py-2"
                     style={{
@@ -302,7 +324,7 @@ export default async function PropertyDetailPage({ params }: Props) {
                         : `Available ${format(new Date(listing.availableFrom), 'd MMMM yyyy')}`}
                     </span>
                   </div>
-                )}
+                ) : null}
               </div>
 
               {/* Key stats strip */}
