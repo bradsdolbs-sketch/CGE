@@ -7,8 +7,8 @@ import { addDays } from 'date-fns'
 import { Building2, PoundSterling, AlertTriangle, Wrench, RefreshCcw, Home } from 'lucide-react'
 import Link from 'next/link'
 
-function fmt(pence: number) {
-  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(pence / 100)
+function fmt(pounds: number) {
+  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(pounds)
 }
 
 function fmtDate(d: Date | string | null) {
